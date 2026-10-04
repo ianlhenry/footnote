@@ -32,6 +32,17 @@ const DECLINE_TOOL: Anthropic.Tool = {
   },
 };
 
+// Tools and the system prompt are the same on every call, for every
+// question, and come first in the request. A cache breakpoint at the end of
+// the system prompt lets each call within five minutes of the last read that
+// prefix at a tenth of the input price. The passages after it change with
+// every question, so they are not cached.
+const SYSTEM: Anthropic.TextBlockParam[] = [
+  { type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
+];
+
+const TOOLS: Anthropic.Tool[] = [...FEC_TOOLS, DECLINE_TOOL];
+
 const DECLINE_TEXT: Record<DeclineReason, string> = {
   not_loaded: "Paper Trail does not have the data this question needs.",
   out_of_scope: "That is outside what Paper Trail covers: polls and FEC campaign finance records.",
@@ -131,8 +142,8 @@ export async function answer(question: string, onEvent: (event: AgentEvent) => v
     const stream = getClient().messages.stream({
       model: MODEL,
       max_tokens: MAX_TOKENS,
-      system: SYSTEM_PROMPT,
-      tools: [...FEC_TOOLS, DECLINE_TOOL],
+      system: SYSTEM,
+      tools: TOOLS,
       // The last turn may not call tools, so it ends with an answer.
       ...(last ? { tool_choice: { type: "none" as const } } : {}),
       messages,
