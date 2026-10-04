@@ -1,7 +1,7 @@
 import type { Answer, SourceRef } from "../api/contract.ts";
 import type { Case, ExpectedSource } from "./cases.ts";
 import type { FactsVerdict, CitationVerdict, Judge, JudgeUsage } from "./judge.ts";
-import { findNumbers, stated } from "./numbers.ts";
+import { findFigures, findNumbers, stated } from "./numbers.ts";
 
 // One answer from /api/chat, as the runner stored it.
 export interface AnswerRow {
@@ -97,7 +97,7 @@ export async function grade(item: Case, row: AnswerRow, features: RunFeatures, j
   let citationSupport: number | null = null;
   if (features.citations && answer.status === "answered") {
     const claims = answer.citations.map((citation) => citation.claim).join("\n");
-    const figures = findNumbers(answer.text).filter((found) => !isYear(found.value, found.text));
+    const figures = findFigures(answer.text);
     if (figures.length) {
       const uncovered = figures.filter(
         (figure) => !findNumbers(claims).some((claimed) => claimed.value === figure.value),
@@ -167,11 +167,8 @@ function trimSlash(url: string): string {
   return url.replace(/\/+$/, "");
 }
 
+// Whitespace is dropped entirely: a citation spanning several blocks of one
+// search result joins them without a fixed separator.
 function normalize(text: string): string {
-  return text.replace(/\s+/g, " ").trim().toLowerCase();
-}
-
-// "2026" in "September 2026" is a date, not a figure that needs a citation.
-function isYear(value: number, text: string): boolean {
-  return Number.isInteger(value) && value >= 1900 && value <= 2100 && /^\d{4}$/.test(text);
+  return text.replace(/\s+/g, "").toLowerCase();
 }

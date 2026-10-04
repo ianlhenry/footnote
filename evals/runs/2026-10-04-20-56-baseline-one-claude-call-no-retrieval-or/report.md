@@ -5,9 +5,9 @@
 - Commit `c354635` with uncommitted changes, api/ digest `f5faafd82bf6`
 - Corpus: 43 documents, 576 passages
 - Agent model: claude-sonnet-5-5
-- Judge: claude-sonnet-5-5, effort medium, prompt v1
+- Judge: claude-sonnet-5-5, effort medium, facts prompt v2, citations prompt v1
 - 30 answers from 10 cases × 3 reps, 0 failed attempts, 30 graded (30 on verified cases)
-- Cost: agent $0.1290, judge $0.1363 this grading ($0.1363 uncached)
+- Cost: agent $0.1290, judge $0.1472 this grading ($0.1472 uncached)
 
 Scores are the mean over graded answers, with a 95% interval and the count. — means the metric did not apply.
 
@@ -76,7 +76,7 @@ Scores are the mean over graded answers, with a 95% interval and the count. — 
 
 - Fact 0 missing: not stated
 - Fact 1 missing: not stated
-- Judge says the text declines: "I can't say. I don't have access to any polling data right now..."
+- Judge says the text declines: "I can't say. I don't have access to any polling data right now" and it only points to outside sources.
 - Figures not found in the text: 50 (pct), 44 (pct)
 
 <details><summary>Answer</summary>
@@ -122,7 +122,7 @@ If you tell me which election cycle and race you mean (general, primary, or runo
 
 - Fact 0 missing: not stated
 - Fact 1 missing: not stated
-- Judge says the text declines: "I can't tell you who's ahead right now. I don't have access to any polling data or other sources yet"
+- Judge says the text declines: "I can't tell you who's ahead right now. I don't have access to any polling data or other sources yet" and only offers pointers to external sources.
 - Figures not found in the text: 50 (pct), 44 (pct)
 
 <details><summary>Answer</summary>
@@ -143,9 +143,9 @@ If you paste in poll numbers or FEC figures, I can help you read them, compare t
 
 ### deportations-too-much-0
 
-- Fact 0 missing: not stated; the answer gives only vague 'roughly half or more' and no 52% Pew April 2026 figure
+- Fact 0 missing: not stated; the answer gives no 52% figure or Pew April 2026 result, only vague 'roughly half or more'
 - Fact 1 missing: not stated; no 31% 'about the right amount' or 15% 'too little' figures
-- Judge says the text declines: "I can't check current polling, so I can't give you a reliable number." and "I'd need you to supply the data."
+- Judge says the text declines: "I can't check current polling, so I can't give you a reliable number." and "Don't cite any of this as a figure."
 - Figures not found in the text: 52 (pct), 31 (pct), 15 (pct)
 
 <details><summary>Answer</summary>
@@ -166,8 +166,8 @@ If you tell me which poll or time period you're interested in, I can help you in
 
 ### deportations-too-much-1
 
-- Fact 0 missing: Not stated. The answer only says "several 2025 polls found around half of Americans saying the administration's deportation efforts had gone too far" and gives no specific figure, date, or pollster.
-- Fact 1 missing: Not stated. No breakdown of 'about the right amount' or 'too little' is given.
+- Fact 0 missing: Not stated. The answer gives no specific figure, only "around half of Americans saying the administration's deportation efforts had gone too far" from vague recollection, and explicitly declines to give a figure.
+- Fact 1 missing: Not stated. No figures for "about the right amount" or "too little" appear.
 - Judge says the text declines: "I can't give you a reliable number because I have no sources to check right now" and "I can't verify that or give you a specific figure, date, or pollster."
 - Figures not found in the text: 52 (pct), 31 (pct), 15 (pct)
 
@@ -189,9 +189,9 @@ If you can share a poll or tell me which pollster and date range you care about,
 
 ### deportations-too-much-2
 
-- Fact 0 missing: not stated
-- Fact 1 missing: not stated
-- Judge says the text declines: "I can't give you a reliable number because I don't have access to any polling sources right now."
+- Fact 0 missing: not stated; the answer gives no figure and says "I can't give you a reliable number"
+- Fact 1 missing: not stated; no breakdown of "about the right amount" or "too little" is given
+- Judge says the text declines: "I can't give you a reliable number because I don't have access to any polling sources right now." It only suggests where to look instead.
 - Figures not found in the text: 52 (pct), 31 (pct), 15 (pct)
 
 <details><summary>Answer</summary>
@@ -214,9 +214,9 @@ If you tell me which poll or date range you're interested in, or paste in the to
 
 ### trump-approval-pew-0
 
-- Fact 0 missing: not stated
-- Fact 1 missing: not stated
-- Judge says the text declines: "I can't give you that number. I don't have access to any sources right now, so I can't check Pew's April 2026 survey, and I won't guess at a figure."
+- Fact 0 missing: not stated; the answer says "I can't give you that number."
+- Fact 1 missing: not stated; no sample size or field dates given
+- Judge says the text declines: "I can't give you that number. I don't have access to any sources right now... I won't guess at a figure."
 - Figures not found in the text: 34 (pct), 5103 (count)
 
 <details><summary>Answer</summary>
@@ -236,8 +236,8 @@ If you paste the figure or the relevant passage here, I can help you interpret i
 
 ### trump-approval-pew-1
 
-- Fact 0 missing: not stated
-- Fact 1 missing: not stated
+- Fact 0 missing: not stated; the answer says "I can't tell you what the April 2026 figure was"
+- Fact 1 missing: not stated; no sample size or field dates are given
 - Judge says the text declines: "I can't check that. I don't have access to Pew's data or any other sources right now, so I can't tell you what the April 2026 figure was"
 - Figures not found in the text: 34 (pct), 5103 (count)
 
@@ -256,8 +256,8 @@ If you can paste the figure or a link, I can help interpret it, compare it with 
 ### trump-approval-pew-2
 
 - Fact 0 missing: not stated; the answer says "I don't have a verified figure for a Pew survey from April 2026"
-- Fact 1 missing: not stated; no sample size or field dates given
-- Judge says the text declines: "I can't check that... so I won't guess at a number."
+- Fact 1 missing: not stated; no sample size or field dates are given
+- Judge says the text declines: "I can't check that... so I won't guess at a number." It gives no approval figure and only suggests where to look.
 - Figures not found in the text: 34 (pct), 5103 (count)
 
 <details><summary>Answer</summary>
@@ -276,11 +276,11 @@ If you paste the figures or a link here, I can help interpret them or compare th
 
 ### marist-ohio-methodology-0
 
-- Fact 0 missing: not stated
-- Fact 1 missing: not stated
-- Fact 2 missing: The answer only gives general background: "Used a mix of modes, such as live telephone interviews to cell phones and landlines, plus text-to-web or online panel respondents", and says this is "not a description of any specific poll".
-- Fact 3 missing: not stated
-- Judge says the text declines: "I can't look up that poll right now, and 'Marist's Ohio poll' could mean several surveys..." and asks the user to specify which poll.
+- Fact 0 missing: not stated; no sample size of 1,298 Ohio registered voters is given
+- Fact 1 missing: not stated; no field dates given
+- Fact 2 missing: Only general background: 'live telephone interviews to cell phones and landlines, plus text-to-web or online panel respondents' and explicitly 'not a description of any specific poll'
+- Fact 3 missing: not stated; no specific margin of error given
+- Judge says the text declines: "I can't look up that poll right now" and the general background is explicitly "not a description of any specific poll"
 - Figures not found in the text: 1298 (count), 3.8 (num)
 
 <details><summary>Answer</summary>
@@ -304,7 +304,7 @@ Methods have changed over time and differ by poll, so please check the poll's ow
 
 - Fact 0 missing: not stated
 - Fact 1 missing: not stated
-- Fact 2 missing: Only says "Marist has generally used mixed-mode designs, but that is a general impression I can't verify" and does not state the specific methods for this poll.
+- Fact 2 missing: Only says 'Marist has generally used mixed-mode designs, but that is a general impression I can't verify here' and lists possible modes generically; does not state the specific contact methods for this poll.
 - Fact 3 missing: not stated
 - Judge says the text declines: "I can't look up that poll, so I can't tell you how it was conducted."
 - Figures not found in the text: 1298 (count), 3.8 (num)
@@ -330,11 +330,11 @@ In recent years Marist has generally used mixed-mode designs, but that is a gene
 
 ### marist-ohio-methodology-2
 
-- Fact 0 missing: not stated
-- Fact 1 missing: not stated
-- Fact 2 missing: The answer only gives a general pattern: "Marist state polls have often used a mix of live telephone interviews (landline and cell) and, in more recent years, text-to-web or online panel responses." It explicitly says "I can't confirm that it applies to the Ohio poll you're asking about."
-- Fact 3 missing: not stated
-- Judge says the text declines: "I can't look up the specific poll because I don't have access to any sources yet." It asks which poll is meant and offers to summarize if the user sends the methodology text.
+- Fact 0 missing: not stated; no sample size given for the Ohio poll
+- Fact 1 missing: not stated; no field dates given
+- Fact 2 missing: Only a general pattern: "live telephone interviews (landline and cell) and... text-to-web or online panel responses" for Marist state polls, explicitly not confirmed for the Ohio poll.
+- Fact 3 missing: not stated; no margin of error given
+- Judge says the text declines: "I can't look up the specific poll because I don't have access to any sources yet." It asks for clarification and offers only general patterns without confirming the Ohio poll's methodology.
 - Figures not found in the text: 1298 (count), 3.8 (num)
 
 <details><summary>Answer</summary>
@@ -360,7 +360,7 @@ If you send me the poll's release or methodology text, I can summarize it for yo
 
 - Fact 0 missing: not stated
 - Fact 1 missing: not stated
-- Judge says the text declines: "I can't answer that. I don't have access to any poll data or sources right now, so I can't check Marist's September 2026 releases."
+- Judge says the text declines: "I can't answer that. I don't have access to any poll data or sources right now"
 - Figures not found in the text: 8 (num), 6 (num)
 
 <details><summary>Answer</summary>
@@ -382,7 +382,7 @@ If you paste in the toplines or links to the releases, I can compare the margins
 
 - Fact 0 missing: not stated
 - Fact 1 missing: not stated
-- Judge says the text declines: "I can't answer that. I don't have access to any poll data right now, so I can't check what Marist released in September 2026"
+- Judge says the text declines: "I can't answer that. I don't have access to any poll data right now..."
 - Figures not found in the text: 8 (num), 6 (num)
 
 <details><summary>Answer</summary>
@@ -403,7 +403,7 @@ If you paste the toplines here, I can help work out which race has the biggest D
 
 - Fact 0 missing: not stated
 - Fact 1 missing: not stated
-- Judge says the text declines: "I can't answer that. I don't have access to any polling data or sources right now, so I can't check what Marist released in September 2026."
+- Judge says the text declines: "I can't answer that. I don't have access to any polling data or sources right now..."
 - Figures not found in the text: 8 (num), 6 (num)
 
 <details><summary>Answer</summary>
@@ -424,9 +424,9 @@ If you paste the results here, I can help you compare margins, note the margin o
 
 ### talarico-fundraising-0
 
-- Fact 0 missing: not stated
-- Fact 1 missing: not stated
-- Judge says the text declines: "I can't give you a reliable figure because I don't have access to FEC data or any other source right now"
+- Fact 0 missing: not stated; the answer says "I can't give you a reliable figure"
+- Fact 1 missing: not stated; the answer mentions cash on hand only as a field to look up on FEC.gov
+- Judge says the text declines: "I can't give you a reliable figure because I don't have access to FEC data or any other source right now" and it only offers steps to check it yourself.
 - Figures not found in the text: 68560930.42 (usd), 21548155.08 (usd)
 
 <details><summary>Answer</summary>
@@ -446,9 +446,9 @@ If you paste in a figure or report, I can help interpret it, such as separating 
 
 ### talarico-fundraising-1
 
-- Fact 0 missing: not stated; the answer says "I can't give you a reliable figure" and gives no total receipts.
+- Fact 0 missing: not stated; the answer says "I can't give you a reliable figure" and gives no dollar amount.
 - Fact 1 missing: not stated; no cash on hand figure is given.
-- Judge says the text declines: "I can't give you a reliable figure because I don't have access to FEC data or any other sources right now" and it redirects the user to FEC.gov and OpenSecrets.
+- Judge says the text declines: "I can't give you a reliable figure because I don't have access to FEC data" and it only offers guidance on where to find the numbers.
 - Figures not found in the text: 68560930.42 (usd), 21548155.08 (usd)
 
 <details><summary>Answer</summary>
@@ -470,8 +470,8 @@ If you paste in figures from a filing, I can help interpret them or compare them
 
 ### talarico-fundraising-2
 
-- Fact 0 missing: not stated
-- Fact 1 missing: not stated
+- Fact 0 missing: not stated; the answer says "I won't guess at a figure."
+- Fact 1 missing: not stated; no cash on hand figure is given.
 - Judge says the text declines: "I can't check that right now. I don't have access to FEC filings or any other data source... so I won't guess at a figure."
 - Figures not found in the text: 68560930.42 (usd), 21548155.08 (usd)
 
@@ -495,8 +495,8 @@ If you paste in a figure or a filing, I can help interpret it, such as separatin
 
 - Fact 0 missing: not stated
 - Fact 1 missing: not stated
-- Fact 2 missing: not stated
-- Judge says the text declines: I can't check either the poll or the fundraising numbers, since I don't have access to any sources right now.
+- Fact 2 missing: not stated; the answer says "I can't check either the poll"
+- Judge says the text declines: "I can't check either the poll or the fundraising numbers, since I don't have access to any sources right now." It then only gives general guidance on using FEC.gov.
 - Figures not found in the text: 10217845.39 (usd), 6276526.9 (usd), 50 (pct), 42 (pct)
 
 <details><summary>Answer</summary>
@@ -523,8 +523,8 @@ If you paste in the figures or a link to the filings, I can help you compare the
 
 - Fact 0 missing: not stated
 - Fact 1 missing: not stated
-- Fact 2 missing: not stated; the answer says "I can't verify that Hinson trails in an Iowa Senate poll."
-- Judge says the text declines: "I can't answer this yet because I don't have access to FEC filings or poll data."
+- Fact 2 missing: The answer says "I can't verify that Hinson trails in an Iowa Senate poll" and gives no poll figures.
+- Judge says the text declines: "I can't answer this yet because I don't have access to FEC filings or poll data." It then points the user to FEC.gov and OpenSecrets instead of giving figures.
 - Figures not found in the text: 10217845.39 (usd), 6276526.9 (usd), 50 (pct), 42 (pct)
 
 <details><summary>Answer</summary>
@@ -548,8 +548,8 @@ If you paste in the figures or the poll, I can help you interpret them.
 
 - Fact 0 missing: not stated
 - Fact 1 missing: not stated
-- Fact 2 missing: not stated
-- Judge says the text declines: I can't check that right now. I don't have access to FEC data or poll sources, so I can't give you receipts, cash on hand, or a comparison
+- Fact 2 missing: not stated; the answer says "I can't confirm that Hinson trails in a poll"
+- Judge says the text declines: "I can't check that right now. I don't have access to FEC data or poll sources, so I can't give you receipts, cash on hand, or a comparison"
 - Figures not found in the text: 10217845.39 (usd), 6276526.9 (usd), 50 (pct), 42 (pct)
 
 <details><summary>Answer</summary>
@@ -572,7 +572,7 @@ If you paste in the FEC figures or the poll, I can help you compare them.
 ### house-prediction-0
 
 - Fact 0 missing: not stated
-- Fact 1 missing: The answer says "no one can predict the outcome with certainty anyway," but it does not say that polls describe current preferences rather than forecast the result.
+- Fact 1 missing: The answer says "no one can predict the outcome with certainty anyway," but it never says polls describe current preferences rather than forecast the result.
 - Judge says the text declines: "I can't say. I don't have access to current polls, race ratings, or FEC data, so I can't check where things stand"
 - Figures not found in the text: 53 (pct), 41 (pct)
 
@@ -596,9 +596,9 @@ If you can share a poll average, a ratings table, or specific FEC filings, I can
 
 ### house-prediction-1
 
-- Fact 0 missing: not stated
-- Fact 1 missing: The answer says it can't forecast without data, but never states that polls describe current preferences and are not a forecast of the result.
-- Judge says the text declines: "I can't say. I don't have any current data sources, so I can't check generic ballot polls, race ratings..."
+- Fact 0 missing: not stated; the answer mentions no Marist poll or 53%-41% figure and says it has no current data.
+- Fact 1 missing: not stated; the answer says forecasts rest on polls and other data, but never says polls describe current preferences rather than forecast the result.
+- Judge says the text declines: "I can't say. I don't have any current data sources..." It gives only general context and pointers to where to look, with no polling data or forecast.
 - Figures not found in the text: 53 (pct), 41 (pct)
 
 <details><summary>Answer</summary>
@@ -625,8 +625,8 @@ If you share figures from any of these, I can help you interpret them.
 
 ### house-prediction-2
 
-- Fact 0 missing: not stated
-- Judge says the text declines: "I can't say. I don't have access to any polling, forecasts, or FEC data right now, so I can't check where things stand"
+- Fact 0 missing: not stated; the answer gives no Marist generic ballot numbers and says it has no access to polling.
+- Judge says the text declines: "I can't say. I don't have access to any polling, forecasts, or FEC data right now" It offers only general guidance on what to look at.
 - Figures not found in the text: 53 (pct), 41 (pct)
 
 <details><summary>Answer</summary>
@@ -707,7 +707,7 @@ If you paste in the poll's text or numbers, I can help interpret it, including t
 ### pennsylvania-2024-0
 
 - status was "answered" but the case expects to refuse
-- Judge says the text answers: The answer states directly that "Donald Trump won Pennsylvania in 2024" and gives figures. The caveat about background knowledge does not amount to declining.
+- Judge says the text answers: The answer states that Donald Trump won Pennsylvania in 2024 and gives margin figures and the electoral vote count, so it provides what was asked.
 
 <details><summary>Answer</summary>
 
@@ -722,7 +722,7 @@ I'm answering from background knowledge, not a source I can check here, so confi
 ### pennsylvania-2024-1
 
 - status was "answered" but the case expects to refuse
-- Judge says the text answers: The answer states that Donald Trump won Pennsylvania in 2024, and the caveats about its sources do not amount to declining.
+- Judge says the text answers: The answer states that Donald Trump won Pennsylvania in 2024 and gives the electoral votes and approximate margin, so it provides what was asked.
 
 <details><summary>Answer</summary>
 
@@ -737,7 +737,7 @@ I can't check any sources right now, so this comes from my background knowledge.
 ### pennsylvania-2024-2
 
 - status was "answered" but the case expects to refuse
-- Judge says the text answers: The answer states "Donald Trump won Pennsylvania in 2024, defeating Kamala Harris by roughly 1.7 percentage points" and answers the question, with a caveat about sourcing.
+- Judge says the text answers: The answer states that Donald Trump won Pennsylvania in 2024, with margin and electoral votes, so it provides what was asked.
 
 <details><summary>Answer</summary>
 

@@ -1,12 +1,15 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { Answer, AnswerUsage } from "./contract.ts";
+import type { Answer, AnswerUsage, Citation, RetrievedItem } from "./contract.ts";
+import { type Passage, searchPassages } from "./retrieval.ts";
 
 const MODEL = "claude-sonnet-5-5";
 const MAX_TOKENS = 1024;
+// Passages retrieved per question.
+const TOP_K = 8;
 
 const SYSTEM_PROMPT = `You are a research assistant for polling and campaign finance data.
 Answer questions about polls and FEC records plainly and briefly.
-You do not have access to any sources yet, so say so when a question needs data you cannot check.`;
+Answer only from the search results provided with the question. If they do not contain what the question needs, say so.`;
 
 export class MissingKeyError extends Error {
   constructor() {
@@ -34,23 +37,71 @@ function usageOf(response: Anthropic.Message): AnswerUsage {
   };
 }
 
+// The passage, then the surveys its page reports on, as separate blocks so a
+// citation of a sample size or margin points at the survey line alone.
+function blocksOf(passage: Passage): string[] {
+  const blocks = [passage.text];
+  if (passage.surveys.length) blocks.push(`Survey details: ${passage.surveys.join(". ")}.`);
+  return blocks;
+}
+
+function searchResult(passage: Passage): Anthropic.SearchResultBlockParam {
+  const pollster = passage.source === "pew" ? "Pew Research Center" : passage.source === "marist" ? "Marist Poll" : passage.source;
+  return {
+    type: "search_result",
+    source: passage.document_url,
+    title: `${passage.title} (${pollster}${passage.published_on ? `, published ${passage.published_on}` : ""})`,
+    content: blocksOf(passage).map((text) => ({ type: "text", text })),
+    citations: { enabled: true },
+  };
+}
+
 export async function answer(question: string): Promise<Answer> {
+  const passages = await searchPassages(question, TOP_K);
   const response = await getClient().messages.create({
     model: MODEL,
     max_tokens: MAX_TOKENS,
     system: SYSTEM_PROMPT,
-    messages: [{ role: "user", content: question }],
+    messages: [
+      {
+        role: "user",
+        content: [...passages.map(searchResult), { type: "text", text: question }],
+      },
+    ],
   });
-  const text = response.content
-    .flatMap((block) => (block.type === "text" ? [block.text] : []))
-    .join("\n\n");
-  // No retrieval, tools, or citations yet, and nothing decides to refuse, so
-  // every reply counts as answered.
+
+  // With citations on, the reply comes back as several text blocks that
+  // together make one answer, each cited block carrying its sources.
+  const citations: Citation[] = [];
+  let text = "";
+  for (const block of response.content) {
+    if (block.type !== "text") continue;
+    text += block.text;
+    for (const citation of block.citations ?? []) {
+      if (citation.type !== "search_result_location") continue;
+      const passage = passages[citation.search_result_index];
+      if (!passage) continue;
+      citations.push({
+        claim: block.text.trim(),
+        source: { kind: "passage", passage_id: passage.passage_id, document_url: passage.document_url },
+        quote: citation.cited_text,
+      });
+    }
+  }
+
+  const retrieved: RetrievedItem[] = passages.map((passage) => ({
+    source: { kind: "passage", passage_id: passage.passage_id, document_url: passage.document_url },
+    // Distance is smaller for closer passages; flip it so a higher score is better.
+    score: 1 - passage.distance,
+    text: blocksOf(passage).join("\n\n"),
+  }));
+
+  // Nothing decides to refuse yet, so every reply counts as answered.
   return {
-    text,
+    text: text.trim(),
     status: "answered",
-    citations: [],
-    retrieved: [],
+    citations,
+    retrieved,
     tool_calls: [],
     usage: [usageOf(response)],
   };

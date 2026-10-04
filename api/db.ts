@@ -11,10 +11,10 @@ export function databasePath(): string {
   return path.isAbsolute(configured) ? configured : path.join(repoRoot, configured);
 }
 
-export function connect(): DatabaseSync {
+export function connect({ readOnly = false } = {}): DatabaseSync {
   const file = databasePath();
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  const db = new DatabaseSync(file, { allowExtension: true });
+  if (!readOnly) fs.mkdirSync(path.dirname(file), { recursive: true });
+  const db = new DatabaseSync(file, { allowExtension: true, readOnly });
   db.exec("PRAGMA foreign_keys = ON");
   sqliteVec.load(db);
   db.enableLoadExtension(false);

@@ -85,7 +85,7 @@ Every run, with `--no-write` or not, ends with a check per source that lists eac
 
 Every run rewrites each page's metadata and survey links. A page is embedded again only when its passage text changes or its vectors came from another model. Documents no longer in the manifest are deleted. A nullable column added to a corpus table, such as `metadata_source`, is added in place. Any other change to the corpus tables' layout stops the Marist and Pew loaders with an error. Run with `--rebuild-corpus` to replace the tables. That embeds every Marist and Pew passage again, so both sources must be in the run. Every page is read and embedded first, and the old tables are swapped for the new ones in one transaction at the end, so a failure or an interrupted run leaves the old tables in place. Any page that fails to read or embed stops the rebuild and keeps the old tables, so a Voyage outage cannot swap in a partial or empty corpus. A page that always fails has to be fixed or removed from its manifest first. Values stored from earlier runs are not carried over, so a survey keeps only what this run's pages state. With `--no-write`, the rebuild is previewed. The check compares column names only. A change to a column's type is not detected.
 
-Set `VOYAGE_API_KEY` in the environment or in `.env`. This command reads `.env`. The API process does not.
+Set `VOYAGE_API_KEY` in the environment or in `.env`. This command reads `.env`, and so does the API, which also needs the key to embed questions.
 
 ## Evals
 

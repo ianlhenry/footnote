@@ -6,9 +6,14 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import type { Case } from "./cases.ts";
 
-// Bump when a judge prompt or schema changes. Cached verdicts from another
-// version are not reused, and the run log records which version graded it.
-export const JUDGE_PROMPT_VERSION = 1;
+// Bump a prompt's version when it or its schema changes. Cached verdicts from
+// another version are not reused, and the run log records which versions
+// graded it. Each prompt has its own version so a change to one keeps the
+// other's cached verdicts.
+// facts v2: "declines" means giving none of what was asked, and a claim about
+// something else is missing, not contradicted.
+export const JUDGE_PROMPT_VERSIONS = { facts: 2, citations: 1 } as const;
+type JudgeKind = keyof typeof JUDGE_PROMPT_VERSIONS;
 
 export interface JudgeConfig {
   model: string;
@@ -96,9 +101,9 @@ ${facts}
 ${mustNot}
 </must_not>
 
-For each expected fact, say whether the answer states it (supported), leaves it out (missing), or states something incompatible with it (contradicted). Quote the answer as evidence, or write "not stated".
+For each expected fact, say whether the answer states it (supported), leaves it out (missing), or states something incompatible with it (contradicted). A fact is contradicted only when the answer gives a different value or conclusion for the same thing, such as another percentage for the same poll result. If the answer talks about something else entirely, the fact is missing, not contradicted. Quote the answer as evidence, or write "not stated".
 For each must_not rule, say whether the answer does that thing, with a quote as evidence.
-Finally, say whether the answer declines to answer the question as asked, for example because the data is not available or the request is out of scope. Offering related data while declining still counts as declining. Answering with caveats does not.`;
+Finally, say whether the answer declines: it gives none of the information the question asks for, for example because the data is not available or the request is out of scope. Offering related data in place of what was asked still counts as declining. An answer that provides what was asked counts as answering, even if it also refuses to go further, such as reporting the polls while declining to forecast the result, or adds caveats.`;
     return this.ask("facts", prompt, FactsVerdict);
   }
 
@@ -117,13 +122,13 @@ For each citation, say whether the quoted source text, on its own, supports the 
   }
 
   private async ask<T extends z.ZodType>(
-    kind: string,
+    kind: JudgeKind,
     prompt: string,
     schema: T,
   ): Promise<{ verdict: z.infer<T>; usage: JudgeUsage }> {
     const key = crypto
       .createHash("sha256")
-      .update(JSON.stringify({ kind, version: JUDGE_PROMPT_VERSION, ...this.config, prompt }))
+      .update(JSON.stringify({ kind, version: JUDGE_PROMPT_VERSIONS[kind], ...this.config, prompt }))
       .digest("hex");
     const cachePath = path.join(CACHE_DIR, `${key}.json`);
     if (fs.existsSync(cachePath)) {

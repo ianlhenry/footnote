@@ -4,6 +4,7 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { answer, MissingKeyError } from "./agent.ts";
 import { connect } from "./db.ts";
+import { MissingVoyageKeyError, VoyageError } from "./retrieval.ts";
 
 const envFile = new URL("../.env", import.meta.url);
 if (fs.existsSync(envFile)) process.loadEnvFile(envFile);
@@ -56,8 +57,11 @@ app.notFound((c) => c.json({ detail: "Not found" }, 404));
 
 app.onError((error, c) => {
   console.error(error);
-  if (error instanceof MissingKeyError) {
+  if (error instanceof MissingKeyError || error instanceof MissingVoyageKeyError) {
     return c.json({ detail: error.message }, 503);
+  }
+  if (error instanceof VoyageError) {
+    return c.json({ detail: "Search request failed" }, 502);
   }
   if (error instanceof Anthropic.APIError) {
     return c.json({ detail: "Model request failed" }, 502);

@@ -5,9 +5,9 @@
 - Commit `c354635` with uncommitted changes, api/ digest `f5faafd82bf6`
 - Corpus: 43 documents, 576 passages
 - Agent model: claude-sonnet-5-5
-- Judge: claude-sonnet-5-5, effort medium, prompt v1
+- Judge: claude-sonnet-5-5, effort medium, facts prompt v2, citations prompt v1
 - 3 answers from 3 cases × 1 reps, 0 failed attempts, 3 graded (3 on verified cases)
-- Cost: agent $0.0116, judge $0.0000 this grading ($0.0126 uncached)
+- Cost: agent $0.0116, judge $0.0136 this grading ($0.0136 uncached)
 
 Scores are the mean over graded answers, with a 95% interval and the count. — means the metric did not apply.
 
@@ -85,7 +85,7 @@ If you paste in a figure or filing, I can help interpret it.
 
 - Fact 0 missing: not stated
 - Fact 1 missing: not stated
-- Judge says the text declines: "I can't say who's ahead right now. I don't have any polling data or sources available"
+- Judge says the text declines: "I can't say who's ahead right now. I don't have any polling data or sources available" and it only points to external sources.
 - Figures not found in the text: 50 (pct), 44 (pct)
 
 <details><summary>Answer</summary>

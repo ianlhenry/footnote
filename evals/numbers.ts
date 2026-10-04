@@ -38,6 +38,23 @@ export function findNumbers(text: string): FoundNumber[] {
   return found;
 }
 
+const MONTH =
+  "(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|Aug(?:ust)?|Sept?(?:ember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)";
+// "April 20-26", "Sept. 14-15, 2026", "September 17th through 20th", "Nov. 17 to 30".
+const DATE = new RegExp(
+  `\\b${MONTH}\\.?\\s+\\d{1,2}(?!\\d)(?:st|nd|rd|th)?(?:\\s*(?:-|–|—|to|through)\\s*(?:${MONTH}\\.?\\s+)?\\d{1,2}(?!\\d)(?:st|nd|rd|th)?)?(?:,?\\s+\\d{4})?`,
+  "gi",
+);
+const ISO_DATE = /\b\d{4}-\d{2}-\d{2}\b/g;
+
+// The figures in an answer that a citation should back: numbers written in
+// digits, leaving out dates, bare years such as "2026", and number words
+// such as "one".
+export function findFigures(text: string): FoundNumber[] {
+  const withoutDates = text.replace(DATE, " ").replace(ISO_DATE, " ");
+  return findNumbers(withoutDates).filter((found) => /\d/.test(found.text) && !/^(19|20)\d\d$/.test(found.text));
+}
+
 // Whether the answer states the expected figure. Percentages may be written
 // with or without the sign ("50-42"); dollars and counts may be rounded.
 export function matches(expected: ExpectedValue, found: FoundNumber): boolean {

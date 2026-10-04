@@ -12,7 +12,7 @@ import type { Answer } from "../api/contract.ts";
 import { type Case, loadCases } from "./cases.ts";
 import { type AnswerRow, grade, runFeatures } from "./grade.ts";
 import type { Judge } from "./judge.ts";
-import { stated } from "./numbers.ts";
+import { findFigures, stated } from "./numbers.ts";
 
 const cases = loadCases();
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
@@ -65,6 +65,11 @@ test("figures match across the ways answers write them", () => {
   assert.ok(!stated({ n: 68560930.42, kind: "usd" }, "He raised $60 million."));
   assert.ok(!stated({ n: 5103, kind: "count" }, "51% approve."));
   assert.ok(!stated({ n: 52, kind: "pct" }, "53% say too much."));
+});
+
+test("citation coverage skips dates and number words", () => {
+  const figures = findFigures("Pew surveyed 5,103 adults April 20-26, 2026; one group, 34% approve. Sept. 14-15 and 2026-09-14, in a September 2026 poll.");
+  assert.deepEqual(figures.map((found) => found.value), [5103, 34]);
 });
 
 test("every labeled figure appears in its own fact text", () => {

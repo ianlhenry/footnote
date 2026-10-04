@@ -7,7 +7,7 @@ import { parseArgs } from "node:util";
 import { z } from "zod";
 import { type Case, loadCases, CASES_PATH } from "./cases.ts";
 import { type AnswerRow, type GradeRow, grade, runFeatures } from "./grade.ts";
-import { Judge, JudgeMiss, JUDGE_PROMPT_VERSION, type JudgeConfig } from "./judge.ts";
+import { Judge, JudgeMiss, JUDGE_PROMPT_VERSIONS, type JudgeConfig } from "./judge.ts";
 import { agentCost, judgeCost, readJsonl, type RunInfo, writeReport, writeSummary } from "./report.ts";
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
@@ -365,7 +365,7 @@ async function gradeRun(dir: string, judgeConfig: JudgeConfig, allowSpend: boole
   // Grades are derived, so each grading pass replaces the file.
   const lines = graded.filter(Boolean).map((row) => JSON.stringify(row));
   fs.writeFileSync(path.join(dir, "grades.jsonl"), lines.join("\n") + (lines.length ? "\n" : ""));
-  info.judge = { ...judgeConfig, prompt_version: JUDGE_PROMPT_VERSION };
+  info.judge = { ...judgeConfig, prompt_versions: { ...JUDGE_PROMPT_VERSIONS } };
   writeJson(path.join(dir, "run.json"), info);
   writeReport(dir);
   writeSummary(RUNS_DIR, RESULTS_PATH);

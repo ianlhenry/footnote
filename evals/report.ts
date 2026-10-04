@@ -19,7 +19,9 @@ export interface RunInfo {
   // The corpus the answers were drawn from. A chunking change shows up as a
   // different passage count.
   corpus: { documents: number; passages: number } | null;
-  judge: (JudgeConfig & { prompt_version: number }) | null;
+  // Runs graded before the facts and citation prompts were versioned
+  // separately carry a single prompt_version.
+  judge: (JudgeConfig & { prompt_versions?: Record<string, number>; prompt_version?: number }) | null;
   agent_models: string[];
   answers: number;
   errors: number;
@@ -90,6 +92,13 @@ function cell(value: Stat | null, withMargin = true): string {
   return withMargin && value.n > 1 ? `${mean} ±${Math.round(value.margin * 100)} (${value.n})` : `${mean} (${value.n})`;
 }
 
+function promptVersions(judge: NonNullable<RunInfo["judge"]>): string {
+  if (judge.prompt_versions) {
+    return Object.entries(judge.prompt_versions).map(([kind, version]) => `${kind} prompt v${version}`).join(", ");
+  }
+  return `prompt v${judge.prompt_version}`;
+}
+
 function money(value: number): string {
   return Number.isNaN(value) ? "unknown" : `$${value.toFixed(value < 1 ? 4 : 2)}`;
 }
@@ -136,7 +145,7 @@ export function writeReport(dir: string) {
     `- Commit \`${info.git.commit}\`${info.git.dirty ? " with uncommitted changes" : ""}, api/ digest \`${info.api_sha}\``,
     `- Corpus: ${info.corpus ? `${info.corpus.documents} documents, ${info.corpus.passages} passages` : "not found"}`,
     `- Agent model: ${info.agent_models.join(", ") || "unknown"}`,
-    `- Judge: ${info.judge ? `${info.judge.model}, effort ${info.judge.effort}, prompt v${info.judge.prompt_version}` : "not graded"}`,
+    `- Judge: ${info.judge ? `${info.judge.model}, effort ${info.judge.effort}, ${promptVersions(info.judge)}` : "not graded"}`,
     `- ${answers.length} answers from ${info.case_ids.length} cases × ${info.reps} reps, ${errors.length} failed attempts, ${grades.length} graded (${verified.length} on verified cases)`,
     `- Cost: agent ${money(agent)}, judge ${money(judgeSpent)} this grading (${money(judgeFull)} uncached)`,
     "",

@@ -1,0 +1,43 @@
+{
+  "id": "2026-10-04-21-21-retrieval-top-8-passages-as-citable",
+  "note": "retrieval: top-8 passages as citable search results, polls only",
+  "started_at": "2026-10-04T21:21:00.128Z",
+  "finished_at": "2026-10-04T21:22:28.337Z",
+  "url": "http://127.0.0.1:8000",
+  "reps": 3,
+  "case_ids": [
+    "texas-senate-poll",
+    "deportations-too-much",
+    "trump-approval-pew",
+    "marist-ohio-methodology",
+    "state-senate-margins",
+    "talarico-fundraising",
+    "iowa-poll-and-money",
+    "house-prediction",
+    "gallup-approval",
+    "pennsylvania-2024"
+  ],
+  "cases_sha": "48499f4e7af3",
+  "git": {
+    "commit": "baf17c9",
+    "dirty": true
+  },
+  "api_sha": "003e702a41d7",
+  "corpus": {
+    "documents": 43,
+    "passages": 576
+  },
+  "judge": {
+    "model": "claude-sonnet-5-5",
+    "effort": "medium",
+    "prompt_versions": {
+      "facts": 2,
+      "citations": 1
+    }
+  },
+  "agent_models": [
+    "claude-sonnet-5-5"
+  ],
+  "answers": 30,
+  "errors": 0
+}

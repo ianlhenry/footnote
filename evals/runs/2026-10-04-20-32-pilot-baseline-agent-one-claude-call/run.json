@@ -23,7 +23,10 @@
   "judge": {
     "model": "claude-sonnet-5-5",
     "effort": "medium",
-    "prompt_version": 1
+    "prompt_versions": {
+      "facts": 2,
+      "citations": 1
+    }
   },
   "agent_models": [
     "claude-sonnet-5-5"
