@@ -8,13 +8,17 @@
   "scripts": {
     "dev": "bash scripts/dev.sh",
     "dev:api": "tsx watch api/server.ts",
-    "dev:web": "npm run dev --prefix web"
+    "dev:web": "npm run dev --prefix web",
+    "eval": "tsx evals/cli.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "test:evals": "tsx --test evals/selftest.test.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.4",
     "concurrently": "^9.2.1",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "zod": "^4.6.5"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",

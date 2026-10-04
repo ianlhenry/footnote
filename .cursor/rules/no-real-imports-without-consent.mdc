@@ -8,15 +8,17 @@ alwaysApply: true
 Never run a real ingest, anything that calls a paid or external API with the user's keys, a git commit, or a git push, unless the user explicitly says to in the current conversation. This applies to agent loops and automations too.
 
 Without consent, the most you may do is:
-- `--dry-run` runs, such as `.venv/bin/python -m server.ingest --dry-run`
+- `--no-write` runs, such as `.venv/bin/python -m server.ingest --no-write`
+- `npm run eval -- plan`, `npm run eval -- review`, `npm run eval -- summary`, and `npm run test:evals`, which call nothing
 - reading local caches, manifests, and the database read-only
-- fetching public pages and PDFs into the ingestion cache, which dry runs already do
+- fetching public pages and PDFs into the ingestion cache, which `--no-write` runs already do
 - read-only git commands, such as `git status`, `git diff`, and `git log`
 
 Needs explicit consent first:
-- `python -m server.ingest` without `--dry-run`, or calling `ingest_pew()`, `ingest_marist()`, `ingest_fec()`, or `ingest_articles()` without `dry_run=True`
+- `python -m server.ingest` without `--no-write`, or calling `ingest_pew()`, `ingest_marist()`, `ingest_fec()`, `ingest_articles()`, or `rebuild_articles()` without `no_write=True`
 - any Voyage embedding call, or any other request that uses `VOYAGE_API_KEY` or another key from `.env`
 - any Anthropic call that uses `ANTHROPIC_API_KEY`, including sending a message to `/api/chat` while the key is set
+- `npm run eval -- run --yes`, and `npm run eval -- grade --yes` when the judge cache misses. Both call Claude.
 - anything that writes to or replaces tables in `data/papertrail.sqlite`
 - any `git commit`, including amends, rebases, and other history rewrites
 - any `git push`, including force pushes and pushing new branches or tags

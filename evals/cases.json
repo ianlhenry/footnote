@@ -1,0 +1,394 @@
+[
+  {
+    "id": "texas-senate-poll",
+    "question": "Who's ahead in the Texas Senate race?",
+    "tags": [
+      "poll-fact",
+      "marist",
+      "state"
+    ],
+    "expect": "answer",
+    "facts": [
+      {
+        "text": "Talarico (D) has 50% to Paxton's (R) 44% among Texas registered voters",
+        "values": [
+          {
+            "n": 50,
+            "kind": "pct"
+          },
+          {
+            "n": 44,
+            "kind": "pct"
+          }
+        ]
+      },
+      {
+        "text": "The poll is the Marist Poll of Texas registered voters, conducted September 17-20, 2026"
+      }
+    ],
+    "must_not": [
+      "Says Paxton leads",
+      "Presents the result as a forecast of who will win"
+    ],
+    "sources": [
+      {
+        "kind": "document",
+        "url": "https://maristpoll.marist.edu/polls/2026-midterm-elections-in-texas-september-2026/"
+      }
+    ],
+    "verified": true,
+    "provenance": "Drafted by Claude from passages 471-472 (Marist Texas release)."
+  },
+  {
+    "id": "deportations-too-much",
+    "question": "What share of Americans say the Trump administration is doing too much on deportations?",
+    "tags": [
+      "poll-fact",
+      "pew",
+      "national"
+    ],
+    "expect": "answer",
+    "facts": [
+      {
+        "text": "52% say the administration is doing too much, in Pew's survey conducted April 6-12, 2026",
+        "values": [
+          {
+            "n": 52,
+            "kind": "pct"
+          }
+        ]
+      },
+      {
+        "text": "31% say about the right amount and 15% too little",
+        "values": [
+          {
+            "n": 31,
+            "kind": "pct"
+          },
+          {
+            "n": 15,
+            "kind": "pct"
+          }
+        ]
+      }
+    ],
+    "must_not": [
+      "Gives the October 2025 figure (53%) as the latest"
+    ],
+    "sources": [
+      {
+        "kind": "document",
+        "url": "https://www.pewresearch.org/short-reads/2026/05/04/about-half-of-americans-continue-to-say-trump-administration-is-doing-too-much-on-deportations/"
+      }
+    ],
+    "verified": true,
+    "provenance": "Drafted by Claude from passages 311-312 (Pew short read, May 2026)."
+  },
+  {
+    "id": "trump-approval-pew",
+    "question": "What was Trump's job approval in Pew's April 2026 survey?",
+    "tags": [
+      "poll-fact",
+      "pew",
+      "national"
+    ],
+    "expect": "answer",
+    "facts": [
+      {
+        "text": "34% approve, the lowest mark of his second term",
+        "values": [
+          {
+            "n": 34,
+            "kind": "pct"
+          }
+        ]
+      },
+      {
+        "text": "The survey of 5,103 adults was conducted April 20-26, 2026",
+        "values": [
+          {
+            "n": 5103,
+            "kind": "count"
+          }
+        ]
+      }
+    ],
+    "must_not": [],
+    "sources": [
+      {
+        "kind": "document",
+        "url": "https://www.pewresearch.org/politics/2026/05/01/trump-loses-ground-on-several-personal-traits-as-approval-rating-slips/"
+      }
+    ],
+    "verified": true,
+    "provenance": "Drafted by Claude from passages 85-86 (Pew report, May 2026)."
+  },
+  {
+    "id": "marist-ohio-methodology",
+    "question": "How was Marist's Ohio poll conducted?",
+    "tags": [
+      "survey-metadata",
+      "marist",
+      "state"
+    ],
+    "expect": "answer",
+    "facts": [
+      {
+        "text": "1,298 Ohio registered voters",
+        "values": [
+          {
+            "n": 1298,
+            "kind": "count"
+          }
+        ]
+      },
+      {
+        "text": "Conducted September 24-27, 2026"
+      },
+      {
+        "text": "Contacted by phone with live interviewers, by text, or online"
+      },
+      {
+        "text": "The margin of error is plus or minus 3.8 percentage points",
+        "values": [
+          {
+            "n": 3.8,
+            "kind": "num"
+          }
+        ]
+      }
+    ],
+    "must_not": [],
+    "sources": [
+      {
+        "kind": "document",
+        "url": "https://maristpoll.marist.edu/polls/midterm-elections-in-ohio-september-2026/"
+      }
+    ],
+    "verified": true,
+    "provenance": "Drafted by Claude from passage 486 and survey marist-OH-2026-09-24-2026-09-27."
+  },
+  {
+    "id": "state-senate-margins",
+    "question": "In Marist's September 2026 state Senate polls, where is the Democrat furthest ahead?",
+    "tags": [
+      "comparison",
+      "marist",
+      "state"
+    ],
+    "expect": "answer",
+    "facts": [
+      {
+        "text": "Iowa and Ohio are tied for the largest Democratic lead, 8 points each: Turek 50-42 and Brown 51-43",
+        "values": [
+          {
+            "n": 8,
+            "kind": "num"
+          }
+        ]
+      },
+      {
+        "text": "Texas is closer: Talarico leads Paxton 50-44, a 6-point margin",
+        "values": [
+          {
+            "n": 6,
+            "kind": "num"
+          }
+        ]
+      }
+    ],
+    "must_not": [
+      "Names a single state as the clear leader without noting the tie"
+    ],
+    "sources": [
+      {
+        "kind": "document",
+        "url": "https://maristpoll.marist.edu/polls/2026-midterm-elections-in-iowa-september-2026/"
+      },
+      {
+        "kind": "document",
+        "url": "https://maristpoll.marist.edu/polls/midterm-elections-in-ohio-september-2026/"
+      },
+      {
+        "kind": "document",
+        "url": "https://maristpoll.marist.edu/polls/2026-midterm-elections-in-texas-september-2026/"
+      }
+    ],
+    "verified": true,
+    "provenance": "Drafted by Claude from passages 471, 477, and 482."
+  },
+  {
+    "id": "talarico-fundraising",
+    "question": "How much has James Talarico's Senate campaign raised?",
+    "tags": [
+      "fec",
+      "candidate"
+    ],
+    "expect": "answer",
+    "facts": [
+      {
+        "text": "$68,560,930.42 in total receipts through June 30, 2026",
+        "values": [
+          {
+            "n": 68560930.42,
+            "kind": "usd"
+          }
+        ]
+      },
+      {
+        "text": "$21,548,155.08 cash on hand at the end of the period",
+        "values": [
+          {
+            "n": 21548155.08,
+            "kind": "usd"
+          }
+        ]
+      }
+    ],
+    "must_not": [],
+    "sources": [
+      {
+        "kind": "fec",
+        "table": "fec_candidate_summary",
+        "id": "S6TX00479"
+      }
+    ],
+    "verified": true,
+    "provenance": "Drafted by Claude from fec_candidate_summary where CAND_ID = 'S6TX00479'."
+  },
+  {
+    "id": "iowa-poll-and-money",
+    "question": "Ashley Hinson trails in the Iowa Senate poll. How does her fundraising compare with Josh Turek's?",
+    "tags": [
+      "poll+fec",
+      "marist",
+      "state"
+    ],
+    "expect": "answer",
+    "facts": [
+      {
+        "text": "Hinson has raised $10,217,845.39 through June 30, 2026 (filed with the FEC as ARENHOLZ, ASHLEY HINSON)",
+        "values": [
+          {
+            "n": 10217845.39,
+            "kind": "usd"
+          }
+        ]
+      },
+      {
+        "text": "Turek has raised $6,276,526.90",
+        "values": [
+          {
+            "n": 6276526.9,
+            "kind": "usd"
+          }
+        ]
+      },
+      {
+        "text": "Turek leads Hinson 50% to 42% in the Marist poll",
+        "values": [
+          {
+            "n": 50,
+            "kind": "pct"
+          },
+          {
+            "n": 42,
+            "kind": "pct"
+          }
+        ]
+      }
+    ],
+    "must_not": [
+      "Says no FEC record exists for Hinson"
+    ],
+    "sources": [
+      {
+        "kind": "fec",
+        "table": "fec_candidate_summary",
+        "id": "S6IA00314"
+      },
+      {
+        "kind": "fec",
+        "table": "fec_candidate_summary",
+        "id": "S6IA00298"
+      },
+      {
+        "kind": "document",
+        "url": "https://maristpoll.marist.edu/polls/2026-midterm-elections-in-iowa-september-2026/"
+      }
+    ],
+    "verified": true,
+    "provenance": "Drafted by Claude from fec_candidate_summary for S6IA00314 and S6IA00298, and passage 477."
+  },
+  {
+    "id": "house-prediction",
+    "question": "Will Democrats win the House in November?",
+    "tags": [
+      "prediction",
+      "marist",
+      "national"
+    ],
+    "expect": "answer",
+    "facts": [
+      {
+        "text": "Marist's national generic ballot has Democrats ahead 53% to 41% among registered voters",
+        "values": [
+          {
+            "n": 53,
+            "kind": "pct"
+          },
+          {
+            "n": 41,
+            "kind": "pct"
+          }
+        ]
+      },
+      {
+        "text": "Polls describe current preferences and are not a forecast of the result"
+      }
+    ],
+    "must_not": [
+      "States as fact which party will win the House"
+    ],
+    "sources": [
+      {
+        "kind": "document",
+        "url": "https://maristpoll.marist.edu/polls/2026-midterm-elections-september-2026/"
+      }
+    ],
+    "verified": true,
+    "provenance": "Drafted by Claude. The expected behavior is to report the data without predicting."
+  },
+  {
+    "id": "gallup-approval",
+    "question": "What did Gallup's latest poll find about Trump's approval rating?",
+    "tags": [
+      "refusal",
+      "not-loaded"
+    ],
+    "expect": "refuse",
+    "facts": [],
+    "must_not": [
+      "Gives a Gallup approval number"
+    ],
+    "sources": [],
+    "verified": true,
+    "provenance": "Drafted by Claude. No Gallup data is loaded. Pointing to the Pew or Marist figures instead is fine."
+  },
+  {
+    "id": "pennsylvania-2024",
+    "question": "Who won Pennsylvania in the 2024 presidential election?",
+    "tags": [
+      "refusal",
+      "not-loaded"
+    ],
+    "expect": "refuse",
+    "facts": [],
+    "must_not": [
+      "Answers from general knowledge without saying the data is not in Paper Trail"
+    ],
+    "sources": [],
+    "verified": true,
+    "provenance": "Drafted by Claude. Election results are not loaded. The model likely knows the answer, so this checks that it sticks to its sources."
+  }
+]

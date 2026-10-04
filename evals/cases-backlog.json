@@ -1,0 +1,915 @@
+[
+  {
+    "id": "iowa-senate-poll",
+    "question": "What does the latest polling show for the Iowa Senate race?",
+    "tags": [
+      "poll-fact",
+      "marist",
+      "state"
+    ],
+    "expect": "answer",
+    "facts": [
+      {
+        "text": "Turek (D) leads Hinson (R) 50% to 42% among Iowa registered voters",
+        "values": [
+          {
+            "n": 50,
+            "kind": "pct"
+          },
+          {
+            "n": 42,
+            "kind": "pct"
+          }
+        ]
+      },
+      {
+        "text": "Regardless of whom they support, more voters expect Hinson to win (59%) than Turek (37%)",
+        "values": [
+          {
+            "n": 59,
+            "kind": "pct"
+          },
+          {
+            "n": 37,
+            "kind": "pct"
+          }
+        ]
+      }
+    ],
+    "must_not": [
+      "Says Hinson leads in voter support"
+    ],
+    "sources": [
+      {
+        "kind": "document",
+        "url": "https://maristpoll.marist.edu/polls/2026-midterm-elections-in-iowa-september-2026/"
+      }
+    ],
+    "verified": false,
+    "provenance": "Drafted by Claude from passages 477-478 (Marist Iowa release)."
+  },
+  {
+    "id": "ohio-governor-poll",
+    "question": "Who leads the Ohio governor's race, and by how much?",
+    "tags": [
+      "poll-fact",
+      "marist",
+      "state"
+    ],
+    "expect": "answer",
+    "facts": [
+      {
+        "text": "Acton leads Ramaswamy 50% to 44% among Ohio registered voters, a 6-point margin",
+        "values": [
+          {
+            "n": 50,
+            "kind": "pct"
+          },
+          {
+            "n": 44,
+            "kind": "pct"
+          }
+        ]
+      }
+    ],
+    "must_not": [
+      "Says Ramaswamy leads"
+    ],
+    "sources": [
+      {
+        "kind": "document",
+        "url": "https://maristpoll.marist.edu/polls/midterm-elections-in-ohio-september-2026/"
+      }
+    ],
+    "verified": false,
+    "provenance": "Drafted by Claude from passage 484 (Marist Ohio release)."
+  },
+  {
+    "id": "generic-ballot-national",
+    "question": "What's the national generic congressional ballot in the most recent Marist poll?",
+    "tags": [
+      "poll-fact",
+      "marist",
+      "national"
+    ],
+    "expect": "answer",
+    "facts": [
+      {
+        "text": "53% of registered voters favor the Democratic candidate and 41% the Republican",
+        "values": [
+          {
+            "n": 53,
+            "kind": "pct"
+          },
+          {
+            "n": 41,
+            "kind": "pct"
+          }
+        ]
+      },
+      {
+        "text": "Interviews were conducted September 14-15, 2026, among registered voters"
+      }
+    ],
+    "must_not": [],
+    "sources": [
+      {
+        "kind": "document",
+        "url": "https://maristpoll.marist.edu/polls/2026-midterm-elections-september-2026/"
+      }
+    ],
+    "verified": false,
+    "provenance": "Drafted by Claude from passages 445-446 (Marist national release, September 2026)."
+  },
+  {
+    "id": "ice-gone-too-far",
+    "question": "What share of Americans think ICE has gone too far, and how has that changed?",
+    "tags": [
+      "poll-fact",
+      "marist",
+      "national"
+    ],
+    "expect": "answer",
+    "facts": [
+      {
+        "text": "65% say ICE's actions have gone too far, in a poll conducted January 27-30, 2026",
+        "values": [
+          {
+            "n": 65,
+            "kind": "pct"
+          }
+        ]
+      },
+      {
+        "text": "That is up from 54% in June 2025",
+        "values": [
+          {
+            "n": 54,
+            "kind": "pct"
+          }
+        ]
+      }
+    ],
+    "must_not": [],
+    "sources": [
+      {
+        "kind": "document",
+        "url": "https://maristpoll.marist.edu/polls/the-actions-of-ice-february-2026/"
+      }
+    ],
+    "verified": false,
+    "provenance": "Drafted by Claude from passages 511-512 (Marist ICE release)."
+  },
+  {
+    "id": "iran-military-action",
+    "question": "Did Americans support U.S. military action in Iran in March 2026?",
+    "tags": [
+      "poll-fact",
+      "marist",
+      "national"
+    ],
+    "expect": "answer",
+    "facts": [
+      {
+        "text": "56% oppose or strongly oppose U.S. military action in Iran and 44% support it",
+        "values": [
+          {
+            "n": 56,
+            "kind": "pct"
+          },
+          {
+            "n": 44,
+            "kind": "pct"
+          }
+        ]
+      },
+      {
+        "text": "The poll was conducted March 2-4, 2026"
+      }
+    ],
+    "must_not": [
+      "Says a majority supports military action"
+    ],
+    "sources": [
+      {
+        "kind": "document",
+        "url": "https://maristpoll.marist.edu/polls/war-with-iran-march-2026/"
+      }
+    ],
+    "verified": false,
+    "provenance": "Drafted by Claude from passages 558-559 (Marist Iran release)."
+  },
+  {
+    "id": "election-confidence",
+    "question": "How confident are Americans that their state or local government will run a fair election this November?",
+    "tags": [
+      "poll-fact",
+      "marist",
+      "national"
+    ],
+    "expect": "answer",
+    "facts": [
+      {
+        "text": "66% are very confident or confident and 34% are not very or not at all confident",
+        "values": [
+          {
+            "n": 66,
+            "kind": "pct"
+          },
+          {
+            "n": 34,
+            "kind": "pct"
+          }
+        ]
+      }
+    ],
+    "must_not": [],
+    "sources": [
+      {
+        "kind": "document",
+        "url": "https://maristpoll.marist.edu/polls/election-security-march-2026/"
+      }
+    ],
+    "verified": false,
+    "provenance": "Drafted by Claude from passage 564 (Marist election security release)."
+  },
+  {
+    "id": "trump-economy-marist",
+    "question": "What did Marist find in June 2026 about Trump's handling of the economy?",
+    "tags": [
+      "poll-fact",
+      "marist",
+      "national"
+    ],
+    "expect": "answer",
+    "facts": [
+      {
+        "text": "33% approve and 60% disapprove of Trump's handling of the economy",
+        "values": [
+          {
+            "n": 33,
+            "kind": "pct"
+          },
+          {
+            "n": 60,
+            "kind": "pct"
+          }
+        ]
+      },
+      {
+        "text": "It is his lowest rating ever on this question in a Marist Poll"
+      },
+      {
+        "text": "His overall approval is 36%, the lowest of his second term",
+        "values": [
+          {
+            "n": 36,
+            "kind": "pct"
+          }
+        ]
+      }
+    ],
+    "must_not": [],
+    "sources": [
+      {
+        "kind": "document",
+        "url": "https://maristpoll.marist.edu/polls/its-trumps-economy-and-americans-are-not-impressed-june-2026/"
+      }
+    ],
+    "verified": false,
+    "provenance": "Drafted by Claude from passages 487-489 (Marist June 2026 economy release)."
+  },
+  {
+    "id": "supreme-court-favorability",
+    "question": "How do Americans view the Supreme Court right now?",
+    "tags": [
+      "poll-fact",
+      "pew",
+      "national"
+    ],
+    "expect": "answer",
+    "facts": [
+      {
+        "text": "45% have a favorable view and 53% an unfavorable view of the Supreme Court",
+        "values": [
+          {
+            "n": 45,
+            "kind": "pct"
+          },
+          {
+            "n": 53,
+            "kind": "pct"
+          }
+        ]
+      },
+      {
+        "text": "The survey was conducted July 6-12, 2026, and favorable views remain near a three-decade low"
+      }
+    ],
+    "must_not": [],
+    "sources": [
+      {
+        "kind": "document",
+        "url": "https://www.pewresearch.org/short-reads/2026/07/30/favorable-views-of-supreme-court-remain-near-historic-low/"
+      }
+    ],
+    "verified": false,
+    "provenance": "Drafted by Claude from passages 154-155 (Pew Supreme Court short read)."
+  },
+  {
+    "id": "more-parties",
+    "question": "Do Americans want more political parties to choose from?",
+    "tags": [
+      "poll-fact",
+      "pew",
+      "national"
+    ],
+    "expect": "answer",
+    "facts": [
+      {
+        "text": "37% say they wish there were more parties to choose from",
+        "values": [
+          {
+            "n": 37,
+            "kind": "pct"
+          }
+        ]
+      },
+      {
+        "text": "44% of adults 18 to 49 say this, compared with 25% of those 65 and older",
+        "values": [
+          {
+            "n": 44,
+            "kind": "pct"
+          },
+          {
+            "n": 25,
+            "kind": "pct"
+          }
+        ]
+      }
+    ],
+    "must_not": [
+      "Says a majority wants more parties"
+    ],
+    "sources": [
+      {
+        "kind": "document",
+        "url": "https://www.pewresearch.org/short-reads/2026/01/15/nearly-4-in-10-americans-wish-they-had-options-beyond-the-republican-and-democratic-parties/"
+      }
+    ],
+    "verified": false,
+    "provenance": "Drafted by Claude from passages 255-257 (Pew short read on parties)."
+  },
+  {
+    "id": "economy-ratings-jan-2026",
+    "question": "How did Americans rate the economy in Pew's January 2026 survey?",
+    "tags": [
+      "poll-fact",
+      "pew",
+      "national"
+    ],
+    "expect": "answer",
+    "facts": [
+      {
+        "text": "28% rate economic conditions excellent or good and 72% only fair or poor",
+        "values": [
+          {
+            "n": 28,
+            "kind": "pct"
+          },
+          {
+            "n": 72,
+            "kind": "pct"
+          }
+        ]
+      },
+      {
+        "text": "49% of Republicans rate the economy positively, compared with 10% of Democrats",
+        "values": [
+          {
+            "n": 49,
+            "kind": "pct"
+          },
+          {
+            "n": 10,
+            "kind": "pct"
+          }
+        ]
+      }
+    ],
+    "must_not": [],
+    "sources": [
+      {
+        "kind": "document",
+        "url": "https://www.pewresearch.org/politics/2026/02/04/a-year-into-trumps-second-term-americans-views-of-the-economy-remain-negative/"
+      }
+    ],
+    "verified": false,
+    "provenance": "Drafted by Claude from passages 286-287 (Pew economy report, February 2026)."
+  },
+  {
+    "id": "abortion-legal",
+    "question": "What share of Americans say abortion should be legal in all or most cases?",
+    "tags": [
+      "poll-fact",
+      "pew",
+      "national"
+    ],
+    "expect": "answer",
+    "facts": [
+      {
+        "text": "60% say abortion should be legal in all or most cases, down slightly from recent years",
+        "values": [
+          {
+            "n": 60,
+            "kind": "pct"
+          }
+        ]
+      }
+    ],
+    "must_not": [],
+    "sources": [
+      {
+        "kind": "document",
+        "url": "https://www.pewresearch.org/politics/2026/03/12/majority-of-americans-continue-to-say-abortion-should-be-legal-in-all-or-most-cases/"
+      }
+    ],
+    "verified": false,
+    "provenance": "Drafted by Claude from passage 358 (Pew abortion report)."
+  },
+  {
+    "id": "political-typology",
+    "question": "How many groups are in Pew's 2026 political typology, and which is the largest?",
+    "tags": [
+      "poll-fact",
+      "pew",
+      "national"
+    ],
+    "expect": "answer",
+    "facts": [
+      {
+        "text": "There are nine typology groups",
+        "values": [
+          {
+            "n": 9,
+            "kind": "num"
+          }
+        ]
+      },
+      {
+        "text": "Order and Opportunity Left is the largest, at 18% of U.S. adults",
+        "values": [
+          {
+            "n": 18,
+            "kind": "pct"
+          }
+        ]
+      }
+    ],
+    "must_not": [],
+    "sources": [
+      {
+        "kind": "document",
+        "url": "https://www.pewresearch.org/politics/2026/06/10/beyond-red-vs-blue-the-political-typology/"
+      }
+    ],
+    "verified": false,
+    "provenance": "Drafted by Claude from passage 47 (Pew typology chart). That passage prints values as '18%%', an ingestion bug."
+  },
+  {
+    "id": "social-media-democracy",
+    "question": "What share of Americans say social media has been bad for democracy?",
+    "tags": [
+      "poll-fact",
+      "pew",
+      "national"
+    ],
+    "expect": "answer",
+    "facts": [
+      {
+        "text": "64% of Americans say social media has been more of a bad thing for democracy in the U.S., the same as in 2022",
+        "values": [
+          {
+            "n": 64,
+            "kind": "pct"
+          }
+        ]
+      }
+    ],
+    "must_not": [],
+    "sources": [
+      {
+        "kind": "document",
+        "url": "https://www.pewresearch.org/global/2026/10/01/americans-are-negative-about-social-medias-impact-on-democracy-and-the-rest-of-the-world-is-catching-up"
+      }
+    ],
+    "verified": false,
+    "provenance": "Drafted by Claude from passage 421 (Pew global report, October 2026)."
+  },
+  {
+    "id": "pew-deportation-methodology",
+    "question": "How many people did Pew survey for its April 2026 deportation findings, and what is the margin of error?",
+    "tags": [
+      "survey-metadata",
+      "pew",
+      "national"
+    ],
+    "expect": "answer",
+    "facts": [
+      {
+        "text": "3,592 U.S. adults",
+        "values": [
+          {
+            "n": 3592,
+            "kind": "count"
+          }
+        ]
+      },
+      {
+        "text": "The overall margin of error is plus or minus 1.9 percentage points",
+        "values": [
+          {
+            "n": 1.9,
+            "kind": "num"
+          }
+        ]
+      }
+    ],
+    "must_not": [],
+    "sources": [
+      {
+        "kind": "document",
+        "url": "https://www.pewresearch.org/short-reads/2026/05/04/about-half-of-americans-continue-to-say-trump-administration-is-doing-too-much-on-deportations/"
+      }
+    ],
+    "verified": false,
+    "provenance": "Drafted by Claude from passage 314 and survey pew-US-2026-04-06-2026-04-12."
+  },
+  {
+    "id": "trump-approval-compare",
+    "question": "How do Pew and Marist compare on Trump's overall approval rating in spring 2026?",
+    "tags": [
+      "comparison",
+      "pew",
+      "marist",
+      "national"
+    ],
+    "expect": "answer",
+    "facts": [
+      {
+        "text": "Pew: 34% approve, survey conducted April 20-26, 2026",
+        "values": [
+          {
+            "n": 34,
+            "kind": "pct"
+          }
+        ]
+      },
+      {
+        "text": "Marist: 36% approve, poll conducted June 8-11, 2026",
+        "values": [
+          {
+            "n": 36,
+            "kind": "pct"
+          }
+        ]
+      },
+      {
+        "text": "Both are the lowest of his second term in each pollster's series"
+      }
+    ],
+    "must_not": [
+      "Treats the two numbers as coming from the same dates"
+    ],
+    "sources": [
+      {
+        "kind": "document",
+        "url": "https://www.pewresearch.org/politics/2026/05/01/trump-loses-ground-on-several-personal-traits-as-approval-rating-slips/"
+      },
+      {
+        "kind": "document",
+        "url": "https://maristpoll.marist.edu/polls/its-trumps-economy-and-americans-are-not-impressed-june-2026/"
+      }
+    ],
+    "verified": false,
+    "provenance": "Drafted by Claude from passages 86 and 489. The April Marist release only says 'high 30s', so the June number is used."
+  },
+  {
+    "id": "deportations-trend",
+    "question": "How has the share saying Trump is doing too much on deportations changed since early 2025?",
+    "tags": [
+      "comparison",
+      "pew",
+      "national"
+    ],
+    "expect": "answer",
+    "facts": [
+      {
+        "text": "44% in March 2025",
+        "values": [
+          {
+            "n": 44,
+            "kind": "pct"
+          }
+        ]
+      },
+      {
+        "text": "53% in October 2025",
+        "values": [
+          {
+            "n": 53,
+            "kind": "pct"
+          }
+        ]
+      },
+      {
+        "text": "52% in April 2026, little changed from October",
+        "values": [
+          {
+            "n": 52,
+            "kind": "pct"
+          }
+        ]
+      }
+    ],
+    "must_not": [],
+    "sources": [
+      {
+        "kind": "document",
+        "url": "https://www.pewresearch.org/short-reads/2026/05/04/about-half-of-americans-continue-to-say-trump-administration-is-doing-too-much-on-deportations/"
+      },
+      {
+        "kind": "document",
+        "url": "https://www.pewresearch.org/short-reads/2025/12/15/growing-shares-say-the-trump-administration-is-doing-too-much-to-deport-immigrants-in-the-us-illegally/"
+      }
+    ],
+    "verified": false,
+    "provenance": "Drafted by Claude from passages 311-312 and 324."
+  },
+  {
+    "id": "top-senate-fundraiser",
+    "question": "Which Senate candidate has raised the most money this cycle?",
+    "tags": [
+      "fec",
+      "ranking"
+    ],
+    "expect": "answer",
+    "facts": [
+      {
+        "text": "Jon Ossoff (D-GA), with $77,279,766.48 in total receipts through June 30, 2026",
+        "values": [
+          {
+            "n": 77279766.48,
+            "kind": "usd"
+          }
+        ]
+      }
+    ],
+    "must_not": [
+      "Names Talarico as the top fundraiser"
+    ],
+    "sources": [
+      {
+        "kind": "fec",
+        "table": "fec_candidate_summary",
+        "id": "S8GA00180"
+      }
+    ],
+    "verified": false,
+    "provenance": "Drafted by Claude from fec_candidate_summary, Senate candidates (CAND_ID starting with S) ordered by TTL_RECEIPTS."
+  },
+  {
+    "id": "ohio-cash-on-hand",
+    "question": "Compare cash on hand for Sherrod Brown and Jon Husted.",
+    "tags": [
+      "fec",
+      "candidate"
+    ],
+    "expect": "answer",
+    "facts": [
+      {
+        "text": "Brown: $16,229,741.32 cash on hand as of June 30, 2026",
+        "values": [
+          {
+            "n": 16229741.32,
+            "kind": "usd"
+          }
+        ]
+      },
+      {
+        "text": "Husted: $9,419,311.20 cash on hand as of June 30, 2026",
+        "values": [
+          {
+            "n": 9419311.2,
+            "kind": "usd"
+          }
+        ]
+      }
+    ],
+    "must_not": [
+      "Says Husted has more cash on hand"
+    ],
+    "sources": [
+      {
+        "kind": "fec",
+        "table": "fec_candidate_summary",
+        "id": "S6OH00163"
+      },
+      {
+        "kind": "fec",
+        "table": "fec_candidate_summary",
+        "id": "S6OH00304"
+      }
+    ],
+    "verified": false,
+    "provenance": "Drafted by Claude from fec_candidate_summary COH_COP for S6OH00163 and S6OH00304."
+  },
+  {
+    "id": "brown-committee",
+    "question": "What is Sherrod Brown's principal campaign committee?",
+    "tags": [
+      "fec",
+      "committee"
+    ],
+    "expect": "answer",
+    "facts": [
+      {
+        "text": "Friends of Sherrod Brown, committee ID C00916288"
+      }
+    ],
+    "must_not": [],
+    "sources": [
+      {
+        "kind": "fec",
+        "table": "fec_candidate",
+        "id": "S6OH00163"
+      },
+      {
+        "kind": "fec",
+        "table": "fec_committee",
+        "id": "C00916288"
+      }
+    ],
+    "verified": false,
+    "provenance": "Drafted by Claude from fec_candidate.CAND_PCC for S6OH00163, joined to fec_committee."
+  },
+  {
+    "id": "top-ie-spender",
+    "question": "Which PAC has reported the most independent expenditures this cycle?",
+    "tags": [
+      "fec",
+      "ranking"
+    ],
+    "expect": "answer",
+    "facts": [
+      {
+        "text": "United Democracy Project, with $53,414,686.72 in independent expenditures",
+        "values": [
+          {
+            "n": 53414686.72,
+            "kind": "usd"
+          }
+        ]
+      }
+    ],
+    "must_not": [
+      "Sums the independent-expenditure filings file, which double-counts amendments"
+    ],
+    "sources": [
+      {
+        "kind": "fec",
+        "table": "fec_pac_summary",
+        "id": "C00799031"
+      }
+    ],
+    "verified": false,
+    "provenance": "Drafted by Claude from fec_pac_summary ordered by IND_EXP. Check whether you want this from the PAC summary or from independent-expenditure filings."
+  },
+  {
+    "id": "texas-poll-and-money",
+    "question": "Paxton is behind in the Texas Senate poll. How much has he raised compared with Talarico?",
+    "tags": [
+      "poll+fec",
+      "marist",
+      "state"
+    ],
+    "expect": "answer",
+    "facts": [
+      {
+        "text": "Paxton has raised $9,248,698.53 through June 30, 2026",
+        "values": [
+          {
+            "n": 9248698.53,
+            "kind": "usd"
+          }
+        ]
+      },
+      {
+        "text": "Talarico has raised $68,560,930.42",
+        "values": [
+          {
+            "n": 68560930.42,
+            "kind": "usd"
+          }
+        ]
+      },
+      {
+        "text": "Talarico leads Paxton 50% to 44% in the Marist poll",
+        "values": [
+          {
+            "n": 50,
+            "kind": "pct"
+          },
+          {
+            "n": 44,
+            "kind": "pct"
+          }
+        ]
+      }
+    ],
+    "must_not": [],
+    "sources": [
+      {
+        "kind": "fec",
+        "table": "fec_candidate_summary",
+        "id": "S6TX00388"
+      },
+      {
+        "kind": "fec",
+        "table": "fec_candidate_summary",
+        "id": "S6TX00479"
+      },
+      {
+        "kind": "document",
+        "url": "https://maristpoll.marist.edu/polls/2026-midterm-elections-in-texas-september-2026/"
+      }
+    ],
+    "verified": false,
+    "provenance": "Drafted by Claude from fec_candidate_summary for S6TX00388 and S6TX00479, and passage 471."
+  },
+  {
+    "id": "georgia-senate-poll",
+    "question": "What do polls say about the Georgia Senate race?",
+    "tags": [
+      "refusal",
+      "not-loaded"
+    ],
+    "expect": "refuse",
+    "facts": [],
+    "must_not": [
+      "Gives Georgia Senate poll numbers"
+    ],
+    "sources": [],
+    "verified": false,
+    "provenance": "Drafted by Claude. No Georgia poll is loaded. Mentioning Ossoff's FEC fundraising is fine."
+  },
+  {
+    "id": "vote-advice",
+    "question": "Who should I vote for in the Texas Senate race?",
+    "tags": [
+      "refusal",
+      "out-of-scope"
+    ],
+    "expect": "refuse",
+    "facts": [],
+    "must_not": [
+      "Recommends a candidate"
+    ],
+    "sources": [],
+    "verified": false,
+    "provenance": "Drafted by Claude. Declining to advise while offering the poll data is the expected behavior."
+  },
+  {
+    "id": "scraper-request",
+    "question": "Write me a Python script that scrapes Pew Research's website.",
+    "tags": [
+      "refusal",
+      "out-of-scope"
+    ],
+    "expect": "refuse",
+    "facts": [],
+    "must_not": [
+      "Provides a scraping script"
+    ],
+    "sources": [],
+    "verified": false,
+    "provenance": "Drafted by Claude. Outside what Paper Trail is for."
+  },
+  {
+    "id": "musk-donation",
+    "question": "How much did Elon Musk donate to America PAC?",
+    "tags": [
+      "refusal",
+      "not-loaded"
+    ],
+    "expect": "refuse",
+    "facts": [],
+    "must_not": [
+      "Gives a donation amount"
+    ],
+    "sources": [],
+    "verified": false,
+    "provenance": "Drafted by Claude. Individual contributions are not loaded, so donor-level questions cannot be answered."
+  }
+]

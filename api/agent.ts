@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import type { Answer, AnswerUsage } from "./contract.ts";
 
 const MODEL = "claude-sonnet-5-5";
 const MAX_TOKENS = 1024;
@@ -22,14 +23,35 @@ function getClient(): Anthropic {
   return client;
 }
 
-export async function answer(question: string): Promise<string> {
+function usageOf(response: Anthropic.Message): AnswerUsage {
+  return {
+    model: response.model,
+    stop_reason: response.stop_reason,
+    input_tokens: response.usage.input_tokens,
+    output_tokens: response.usage.output_tokens,
+    cache_read_input_tokens: response.usage.cache_read_input_tokens ?? 0,
+    cache_creation_input_tokens: response.usage.cache_creation_input_tokens ?? 0,
+  };
+}
+
+export async function answer(question: string): Promise<Answer> {
   const response = await getClient().messages.create({
     model: MODEL,
     max_tokens: MAX_TOKENS,
     system: SYSTEM_PROMPT,
     messages: [{ role: "user", content: question }],
   });
-  return response.content
+  const text = response.content
     .flatMap((block) => (block.type === "text" ? [block.text] : []))
     .join("\n\n");
+  // No retrieval, tools, or citations yet, and nothing decides to refuse, so
+  // every reply counts as answered.
+  return {
+    text,
+    status: "answered",
+    citations: [],
+    retrieved: [],
+    tool_calls: [],
+    usage: [usageOf(response)],
+  };
 }

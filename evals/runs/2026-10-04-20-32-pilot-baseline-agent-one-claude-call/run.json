@@ -1,0 +1,33 @@
+{
+  "id": "2026-10-04-20-32-pilot-baseline-agent-one-claude-call",
+  "note": "pilot: baseline agent (one Claude call, no retrieval or tools)",
+  "started_at": "2026-10-04T20:32:19.653Z",
+  "finished_at": "2026-10-04T20:32:24.932Z",
+  "url": "http://127.0.0.1:8000",
+  "reps": 1,
+  "case_ids": [
+    "texas-senate-poll",
+    "talarico-fundraising",
+    "gallup-approval"
+  ],
+  "cases_sha": "bcbe770c730a",
+  "git": {
+    "commit": "c354635",
+    "dirty": true
+  },
+  "api_sha": "f5faafd82bf6",
+  "corpus": {
+    "documents": 43,
+    "passages": 576
+  },
+  "judge": {
+    "model": "claude-sonnet-5-5",
+    "effort": "medium",
+    "prompt_version": 1
+  },
+  "agent_models": [
+    "claude-sonnet-5-5"
+  ],
+  "answers": 3,
+  "errors": 0
+}

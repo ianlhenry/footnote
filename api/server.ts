@@ -42,12 +42,12 @@ app.all("/api/chat", async (c) => {
     return c.json({ detail: "content is required" }, 400);
   }
 
-  const reply = await answer(content);
+  const { text, ...details } = await answer(content);
 
   return c.json({
     messages: [
       { id: takeId(), role: "user", content },
-      { id: takeId(), role: "assistant", content: reply },
+      { id: takeId(), role: "assistant", content: text, ...details },
     ],
   });
 });
