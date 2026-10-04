@@ -1,6 +1,6 @@
 import fs from "node:fs";
-import { callCost } from "../api/pricing.ts";
 import path from "node:path";
+import { callCost } from "../api/pricing.ts";
 import { type AnswerRow, type GradeRow, METRICS, type MetricId } from "./grade.ts";
 import type { JudgeConfig } from "./judge.ts";
 
@@ -22,7 +22,9 @@ export interface RunInfo {
   corpus: { documents: number; passages: number } | null;
   // Runs graded before the facts and citation prompts were versioned
   // separately carry a single prompt_version.
-  judge: (JudgeConfig & { prompt_versions?: Record<string, number>; prompt_version?: number }) | null;
+  judge:
+    | (JudgeConfig & { prompt_versions?: Record<string, number>; prompt_version?: number })
+    | null;
   agent_models: string[];
   answers: number;
   errors: number;
@@ -62,13 +64,18 @@ interface Stat {
 }
 
 function stat(rows: GradeRow[], metric: MetricId): Stat | null {
-  const values = rows.map((row) => row.metrics[metric]).filter((value): value is number => value !== null);
+  const values = rows
+    .map((row) => row.metrics[metric])
+    .filter((value): value is number => value !== null);
   if (!values.length) {
     return null;
   }
 
   const mean = values.reduce((a, b) => a + b, 0) / values.length;
-  const variance = values.length > 1 ? values.reduce((sum, v) => sum + (v - mean) ** 2, 0) / (values.length - 1) : 0;
+  const variance =
+    values.length > 1
+      ? values.reduce((sum, v) => sum + (v - mean) ** 2, 0) / (values.length - 1)
+      : 0;
   return { mean, n: values.length, margin: 1.96 * Math.sqrt(variance / values.length) };
 }
 
@@ -78,12 +85,16 @@ function cell(value: Stat | null, withMargin = true): string {
   }
 
   const mean = `${Math.round(value.mean * 100)}%`;
-  return withMargin && value.n > 1 ? `${mean} ±${Math.round(value.margin * 100)} (${value.n})` : `${mean} (${value.n})`;
+  return withMargin && value.n > 1
+    ? `${mean} ±${Math.round(value.margin * 100)} (${value.n})`
+    : `${mean} (${value.n})`;
 }
 
 function promptVersions(judge: NonNullable<RunInfo["judge"]>): string {
   if (judge.prompt_versions) {
-    return Object.entries(judge.prompt_versions).map(([kind, version]) => `${kind} prompt v${version}`).join(", ");
+    return Object.entries(judge.prompt_versions)
+      .map(([kind, version]) => `${kind} prompt v${version}`)
+      .join(", ");
   }
 
   return `prompt v${judge.prompt_version}`;
@@ -145,7 +156,10 @@ export function writeReport(dir: string) {
     "",
     "| metric | verified cases | all cases | what it measures |",
     "| --- | --- | --- | --- |",
-    ...METRICS.map(([id, label]) => `| ${id} | ${cell(stat(verified, id))} | ${cell(stat(grades, id))} | ${label} |`),
+    ...METRICS.map(
+      ([id, label]) =>
+        `| ${id} | ${cell(stat(verified, id))} | ${cell(stat(grades, id))} | ${label} |`,
+    ),
     "",
     "## By category (all cases)",
     "",
@@ -156,17 +170,35 @@ export function writeReport(dir: string) {
   const categories = [...new Set(grades.map((row) => row.category))].sort();
   for (const category of categories) {
     const rows = grades.filter((row) => row.category === category);
-    lines.push(`| ${category} | ${rows.length} | ${METRIC_IDS.map((id) => cell(stat(rows, id), false)).join(" | ")} |`);
+    lines.push(
+      `| ${category} | ${rows.length} | ${METRIC_IDS.map((id) => cell(stat(rows, id), false)).join(" | ")} |`,
+    );
   }
 
-  lines.push("", "## Cases", "", `| case | rep | expect | verified | ${METRIC_IDS.join(" | ")} |`, `| --- | --- | --- | --- | ${METRIC_IDS.map(() => "---").join(" | ")} |`);
+  lines.push(
+    "",
+    "## Cases",
+    "",
+    `| case | rep | expect | verified | ${METRIC_IDS.join(" | ")} |`,
+    `| --- | --- | --- | --- | ${METRIC_IDS.map(() => "---").join(" | ")} |`,
+  );
   for (const row of grades) {
-    const values = METRIC_IDS.map((id) => (row.metrics[id] === null ? "—" : `${Math.round(row.metrics[id]! * 100)}`));
-    lines.push(`| [${row.case_id}](#${row.case_id}-${row.rep}) | ${row.rep} | ${row.expect} | ${row.verified ? "yes" : "no"} | ${values.join(" | ")} |`);
+    const values = METRIC_IDS.map((id) =>
+      row.metrics[id] === null ? "—" : `${Math.round(row.metrics[id]! * 100)}`,
+    );
+    lines.push(
+      `| [${row.case_id}](#${row.case_id}-${row.rep}) | ${row.rep} | ${row.expect} | ${row.verified ? "yes" : "no"} | ${values.join(" | ")} |`,
+    );
   }
 
   if (errors.length) {
-    lines.push("", "## Failed attempts", "", "These never produced an answer and are not scored.", "");
+    lines.push(
+      "",
+      "## Failed attempts",
+      "",
+      "These never produced an answer and are not scored.",
+      "",
+    );
     for (const error of errors) {
       lines.push(`- ${error.case_id}#${error.rep} (${error.failure_class}): ${error.error}`);
     }
@@ -192,7 +224,9 @@ export function writeReport(dir: string) {
       problems.push(`status was "${answer?.answer.status}" but the case expects to ${row.expect}`);
     }
     if (row.metrics.refusal_text === 0) {
-      problems.push(`Judge says the text ${row.details.declines?.value ? "declines" : "answers"}: ${row.details.declines?.evidence}`);
+      problems.push(
+        `Judge says the text ${row.details.declines?.value ? "declines" : "answers"}: ${row.details.declines?.evidence}`,
+      );
     }
     if (row.details.missing_values?.length) {
       problems.push(`Figures not found in the text: ${row.details.missing_values.join(", ")}`);
@@ -204,7 +238,9 @@ export function writeReport(dir: string) {
       problems.push(`Figures with no citation: ${row.details.uncovered_numbers.join(", ")}`);
     }
     if (row.details.unfaithful_quotes?.length) {
-      problems.push(`Citations whose quote is not in the passage: ${row.details.unfaithful_quotes.join(", ")}`);
+      problems.push(
+        `Citations whose quote is not in the passage: ${row.details.unfaithful_quotes.join(", ")}`,
+      );
     }
     for (const citation of row.details.citations ?? []) {
       if (!citation.supports) {
@@ -212,11 +248,25 @@ export function writeReport(dir: string) {
       }
     }
 
-    lines.push(...(problems.length ? problems.map((problem) => `- ${problem}`) : ["No problems found."]), "");
+    lines.push(
+      ...(problems.length ? problems.map((problem) => `- ${problem}`) : ["No problems found."]),
+      "",
+    );
     if (answer) {
       const text = answer.answer.text;
-      const ticks = "`".repeat(Math.max(3, ...(text.match(/`+/g) ?? []).map((run) => run.length + 1)));
-      lines.push("<details><summary>Answer</summary>", "", ticks, text, ticks, "", "</details>", "");
+      const ticks = "`".repeat(
+        Math.max(3, ...(text.match(/`+/g) ?? []).map((run) => run.length + 1)),
+      );
+      lines.push(
+        "<details><summary>Answer</summary>",
+        "",
+        ticks,
+        text,
+        ticks,
+        "",
+        "</details>",
+        "",
+      );
     }
   }
 

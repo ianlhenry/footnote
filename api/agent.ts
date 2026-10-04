@@ -1,8 +1,16 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { Answer, AnswerUsage, Citation, DeclineReason, RetrievedItem, SourceRef, ToolCall } from "./contract.ts";
+import type {
+  Answer,
+  AnswerUsage,
+  Citation,
+  DeclineReason,
+  RetrievedItem,
+  SourceRef,
+  ToolCall,
+} from "./contract.ts";
 import { readOnlyDatabase } from "./db.ts";
-import { callCost } from "./pricing.ts";
 import { FEC_TOOLS, runFecTool, type ToolResult } from "./fec.ts";
+import { callCost } from "./pricing.ts";
 import { type Passage, searchPassages } from "./retrieval.ts";
 
 const MODEL = "claude-sonnet-5-5";
@@ -17,7 +25,11 @@ Answer questions about polls and FEC records plainly and briefly.
 Answer only from the search results provided with the question and from the FEC tools. Use the FEC tools for questions about campaign money. If neither contains what the question needs, say so.
 If you cannot answer any part of the question, explain briefly and call the decline tool in the same reply. If you can answer part of it, answer that part and do not call decline.`;
 
-const DECLINE_REASONS = ["not_loaded", "out_of_scope", "opinion"] as const satisfies readonly DeclineReason[];
+const DECLINE_REASONS = [
+  "not_loaded",
+  "out_of_scope",
+  "opinion",
+] as const satisfies readonly DeclineReason[];
 
 // Calling this ends the conversation: the reply it arrives with is the answer.
 const DECLINE_TOOL: Anthropic.Tool = {
@@ -46,7 +58,8 @@ const TOOLS: Anthropic.Tool[] = [...FEC_TOOLS, DECLINE_TOOL];
 const DECLINE_TEXT: Record<DeclineReason, string> = {
   not_loaded: "Paper Trail does not have the data this question needs.",
   out_of_scope: "That is outside what Paper Trail covers: polls and FEC campaign finance records.",
-  opinion: "Paper Trail reports what polls and FEC records show, but does not give advice or predictions.",
+  opinion:
+    "Paper Trail reports what polls and FEC records show, but does not give advice or predictions.",
 };
 
 export class MissingKeyError extends Error {
@@ -85,7 +98,11 @@ const POLLSTERS: Record<string, string> = { pew: "Pew Research Center", marist: 
 // The passage, then the surveys its page reports on, as separate blocks so a
 // citation of a sample size or margin points at the survey line alone.
 function passageResult(passage: Passage): ToolResult {
-  const ref = { kind: "passage" as const, passage_id: passage.passage_id, document_url: passage.document_url };
+  const ref = {
+    kind: "passage" as const,
+    passage_id: passage.passage_id,
+    document_url: passage.document_url,
+  };
   const blocks = [{ text: passage.text, ref }];
   if (passage.surveys.length) {
     blocks.push({ text: `Survey details: ${passage.surveys.join(". ")}.`, ref });
@@ -95,7 +112,11 @@ function passageResult(passage: Passage): ToolResult {
   return {
     title: `${passage.title} (${pollster}${passage.published_on ? `, published ${passage.published_on}` : ""})`,
     name: passage.title,
-    label: [pollster, passage.doc_type, passage.published_on ? `published ${passage.published_on}` : null]
+    label: [
+      pollster,
+      passage.doc_type,
+      passage.published_on ? `published ${passage.published_on}` : null,
+    ]
       .filter(Boolean)
       .join(" · "),
     source: passage.document_url,
@@ -128,7 +149,10 @@ export async function answer(question: string): Promise<Answer> {
   const toolCalls: ToolCall[] = [];
   const usage: AnswerUsage[] = [];
   const messages: Anthropic.MessageParam[] = [
-    { role: "user", content: [...results.map(searchResultBlock), { type: "text", text: question }] },
+    {
+      role: "user",
+      content: [...results.map(searchResultBlock), { type: "text", text: question }],
+    },
   ];
 
   let response: Anthropic.Message | undefined;
@@ -150,7 +174,8 @@ export async function answer(question: string): Promise<Answer> {
     }
 
     const decline = response.content.find(
-      (block): block is Anthropic.ToolUseBlock => block.type === "tool_use" && block.name === "decline",
+      (block): block is Anthropic.ToolUseBlock =>
+        block.type === "tool_use" && block.name === "decline",
     );
     if (decline) {
       const reason = (decline.input as { reason?: string }).reason;
@@ -174,12 +199,19 @@ export async function answer(question: string): Promise<Answer> {
         toolResults.push({
           type: "tool_result",
           tool_use_id: block.id,
-          content: found.length ? found.map(searchResultBlock) : [{ type: "text", text: "No matching FEC records." }],
+          content: found.length
+            ? found.map(searchResultBlock)
+            : [{ type: "text", text: "No matching FEC records." }],
         });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         toolCalls.push({ name: block.name, input, output: { error: message } });
-        toolResults.push({ type: "tool_result", tool_use_id: block.id, content: message, is_error: true });
+        toolResults.push({
+          type: "tool_result",
+          tool_use_id: block.id,
+          content: message,
+          is_error: true,
+        });
       }
     }
     messages.push({ role: "user", content: toolResults });

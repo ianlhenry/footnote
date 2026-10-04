@@ -152,17 +152,23 @@ async function embedQuery(text: string): Promise<Float32Array> {
     });
 
     if ((response.status === 429 || response.status >= 500) && attempt < 2) {
-      await new Promise((resolve) => setTimeout(resolve, 1000 * 2 ** attempt * (0.5 + Math.random())));
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000 * 2 ** attempt * (0.5 + Math.random())),
+      );
       continue;
     }
     if (!response.ok) {
-      throw new VoyageError(`Voyage HTTP ${response.status}: ${(await response.text()).slice(0, 300)}`);
+      throw new VoyageError(
+        `Voyage HTTP ${response.status}: ${(await response.text()).slice(0, 300)}`,
+      );
     }
 
     const payload = (await response.json()) as { data: { embedding: number[] }[] };
     const embedding = payload.data[0]?.embedding;
     if (!embedding || embedding.length !== EMBEDDING_DIMENSION) {
-      throw new VoyageError(`Voyage returned ${embedding?.length ?? 0} dimensions, expected ${EMBEDDING_DIMENSION}`);
+      throw new VoyageError(
+        `Voyage returned ${embedding?.length ?? 0} dimensions, expected ${EMBEDDING_DIMENSION}`,
+      );
     }
 
     return Float32Array.from(embedding);

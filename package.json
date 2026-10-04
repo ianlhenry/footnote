@@ -10,12 +10,17 @@
     "dev:api": "tsx watch api/server.ts",
     "dev:web": "npm run dev --prefix web",
     "eval": "tsx evals/cli.ts",
-    "typecheck": "tsc -p tsconfig.json",
-    "test:evals": "tsx --test evals/selftest.test.ts"
+    "typecheck": "tsc -p tsconfig.json && tsc -p web/tsconfig.json",
+    "test:evals": "tsx --test evals/selftest.test.ts",
+    "check": "biome check . && npm run typecheck && npm run test:evals",
+    "format": "biome check --write .",
+    "prepare": "lefthook install"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.15",
     "@types/node": "^26.6.4",
     "concurrently": "^9.2.1",
+    "lefthook": "^2.1.16",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "zod": "^4.6.5"

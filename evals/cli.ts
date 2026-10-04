@@ -5,10 +5,17 @@ import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { parseArgs } from "node:util";
 import { z } from "zod";
-import { type Case, loadCases, CASES_PATH } from "./cases.ts";
+import { CASES_PATH, type Case, loadCases } from "./cases.ts";
 import { type AnswerRow, type GradeRow, grade, runFeatures } from "./grade.ts";
-import { Judge, JudgeMiss, JUDGE_PROMPT_VERSIONS, type JudgeConfig } from "./judge.ts";
-import { agentCost, judgeCost, readJsonl, type RunInfo, writeReport, writeSummary } from "./report.ts";
+import { JUDGE_PROMPT_VERSIONS, Judge, type JudgeConfig, JudgeMiss } from "./judge.ts";
+import {
+  agentCost,
+  judgeCost,
+  type RunInfo,
+  readJsonl,
+  writeReport,
+  writeSummary,
+} from "./report.ts";
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 // The self-test points this at a scratch directory.
@@ -35,8 +42,18 @@ const AnswerSchema = z.object({
   status: z.enum(["answered", "refused"]),
   // Older runs predate decline_reason.
   decline_reason: z.enum(["not_loaded", "out_of_scope", "opinion"]).nullable().default(null),
-  citations: z.array(z.object({ claim: z.string(), source: SourceRef, title: z.string().default(""), label: z.string().default(""), quote: z.string() })),
-  retrieved: z.array(z.object({ source: SourceRef, score: z.number().nullable(), text: z.string() })),
+  citations: z.array(
+    z.object({
+      claim: z.string(),
+      source: SourceRef,
+      title: z.string().default(""),
+      label: z.string().default(""),
+      quote: z.string(),
+    }),
+  ),
+  retrieved: z.array(
+    z.object({ source: SourceRef, score: z.number().nullable(), text: z.string() }),
+  ),
   tool_calls: z.array(z.object({ name: z.string(), input: z.unknown(), output: z.unknown() })),
   usage: z.array(
     z.object({
@@ -99,7 +116,10 @@ async function main() {
     return console.log(USAGE);
   }
 
-  const judgeConfig = JudgeConfigSchema.parse({ model: values["judge-model"], effort: values["judge-effort"] });
+  const judgeConfig = JudgeConfigSchema.parse({
+    model: values["judge-model"],
+    effort: values["judge-effort"],
+  });
   const options = {
     reps: positiveInt(values.reps, "--reps"),
     concurrency: positiveInt(values.concurrency, "--concurrency"),
@@ -142,7 +162,10 @@ async function main() {
   }
 }
 
-const JudgeConfigSchema = z.object({ model: z.string(), effort: z.enum(["low", "medium", "high"]) });
+const JudgeConfigSchema = z.object({
+  model: z.string(),
+  effort: z.enum(["low", "medium", "high"]),
+});
 
 function selectCases(only: string | undefined, verifiedOnly: boolean): Case[] {
   let cases = loadCases();
@@ -173,17 +196,29 @@ async function plan(cases: Case[], reps: number, judgeConfig: JudgeConfig) {
 
   console.log(`cases.json is valid: ${cases.length} cases selected, ${verified} verified.`);
   console.log(`  ${[...byCategory].map(([name, count]) => `${name} ${count}`).join(", ")}`);
-  console.log(`  expect answer ${cases.filter((c) => c.expect === "answer").length}, refuse ${cases.filter((c) => c.expect === "refuse").length}`);
+  console.log(
+    `  expect answer ${cases.filter((c) => c.expect === "answer").length}, refuse ${cases.filter((c) => c.expect === "refuse").length}`,
+  );
   console.log(`\nA run would make:`);
-  console.log(`  ${cases.length * reps} requests to /api/chat (${cases.length} cases × ${reps} reps). Each makes as many Claude calls as the agent does; today that is 1.`);
-  console.log(`  up to ${cases.length * reps} judge calls on ${judgeConfig.model} (effort ${judgeConfig.effort}) to grade facts, plus 1 per answer that has citations.`);
+  console.log(
+    `  ${cases.length * reps} requests to /api/chat (${cases.length} cases × ${reps} reps). Each makes as many Claude calls as the agent does; today that is 1.`,
+  );
+  console.log(
+    `  up to ${cases.length * reps} judge calls on ${judgeConfig.model} (effort ${judgeConfig.effort}) to grade facts, plus 1 per answer that has citations.`,
+  );
 
   const estimate = measuredCost();
   if (estimate) {
-    console.log(`\nLast graded run (${estimate.run}) cost $${estimate.perAnswer.toFixed(4)} per answer, judge included.`);
-    console.log(`  At that rate this run would cost about $${(estimate.perAnswer * cases.length * reps).toFixed(2)}.`);
+    console.log(
+      `\nLast graded run (${estimate.run}) cost $${estimate.perAnswer.toFixed(4)} per answer, judge included.`,
+    );
+    console.log(
+      `  At that rate this run would cost about $${(estimate.perAnswer * cases.length * reps).toFixed(2)}.`,
+    );
   } else {
-    console.log(`\nNo graded run yet, so there is no measured cost. Pilot with --only on 2 or 3 cases to measure it.`);
+    console.log(
+      `\nNo graded run yet, so there is no measured cost. Pilot with --only on 2 or 3 cases to measure it.`,
+    );
   }
 }
 
@@ -192,7 +227,10 @@ function measuredCost(): { run: string; perAnswer: number } | null {
     return null;
   }
 
-  const runs = fs.readdirSync(RUNS_DIR).filter((name) => fs.existsSync(path.join(RUNS_DIR, name, "grades.jsonl"))).sort();
+  const runs = fs
+    .readdirSync(RUNS_DIR)
+    .filter((name) => fs.existsSync(path.join(RUNS_DIR, name, "grades.jsonl")))
+    .sort();
   const last = runs.at(-1);
   if (!last) {
     return null;
@@ -204,11 +242,17 @@ function measuredCost(): { run: string; perAnswer: number } | null {
     return null;
   }
 
-  const total = answers.reduce((sum, row) => sum + agentCost(row), 0) + grades.reduce((sum, row) => sum + judgeCost(row, true), 0);
+  const total =
+    answers.reduce((sum, row) => sum + agentCost(row), 0) +
+    grades.reduce((sum, row) => sum + judgeCost(row, true), 0);
   return { run: last, perAnswer: total / answers.length };
 }
 
-async function askAll(dir: string, cases: Case[], options: { reps: number; concurrency: number; timeoutS: number; url: string; note: string }) {
+async function askAll(
+  dir: string,
+  cases: Case[],
+  options: { reps: number; concurrency: number; timeoutS: number; url: string; note: string },
+) {
   await preflight(options.url);
 
   fs.mkdirSync(dir, { recursive: true });
@@ -234,7 +278,9 @@ async function askAll(dir: string, cases: Case[], options: { reps: number; concu
         errors: 0,
       };
   if (resumed && info.api_sha !== apiSha()) {
-    fail(`api/ changed since ${info.id} started, so resumed answers would come from a different agent. Start a new run.`);
+    fail(
+      `api/ changed since ${info.id} started, so resumed answers would come from a different agent. Start a new run.`,
+    );
   }
   writeJson(infoPath, info);
 
@@ -266,7 +312,14 @@ async function askAll(dir: string, cases: Case[], options: { reps: number; concu
         // resume asks them again.
         fs.appendFileSync(
           errorsPath,
-          JSON.stringify({ case_id: item.id, rep, failure_class: failure.kind, error: failure.message, retries: failure.retries, at: new Date().toISOString() }) + "\n",
+          JSON.stringify({
+            case_id: item.id,
+            rep,
+            failure_class: failure.kind,
+            error: failure.message,
+            retries: failure.retries,
+            at: new Date().toISOString(),
+          }) + "\n",
         );
         console.error(`  ${item.id}#${rep} FAILED (${failure.kind}): ${failure.message}`);
       }
@@ -278,7 +331,9 @@ async function askAll(dir: string, cases: Case[], options: { reps: number; concu
   const answers = readJsonl<AnswerRow>(answersPath);
   info.answers = answers.length;
   info.errors = readJsonl(errorsPath).length;
-  info.agent_models = [...new Set(answers.flatMap((row) => row.answer.usage.map((usage) => usage.model)))].sort();
+  info.agent_models = [
+    ...new Set(answers.flatMap((row) => row.answer.usage.map((usage) => usage.model))),
+  ].sort();
   info.finished_at = new Date().toISOString();
   writeJson(infoPath, info);
 
@@ -358,7 +413,11 @@ async function askOne(url: string, question: string, timeoutS: number) {
     const last = parsed.success ? parsed.data.messages.at(-1) : undefined;
     const answer = AnswerSchema.safeParse(last);
     if (!answer.success) {
-      throw new AskError("contract", `response does not match api/contract.ts: ${answer.error.message}`, retries);
+      throw new AskError(
+        "contract",
+        `response does not match api/contract.ts: ${answer.error.message}`,
+        retries,
+      );
     }
 
     const { content, ...rest } = answer.data;
@@ -375,14 +434,21 @@ async function backoff(attempt: number, deadline: number) {
   await new Promise((resolve) => setTimeout(resolve, delay));
 }
 
-async function gradeRun(dir: string, judgeConfig: JudgeConfig, allowSpend: boolean, concurrency: number) {
+async function gradeRun(
+  dir: string,
+  judgeConfig: JudgeConfig,
+  allowSpend: boolean,
+  concurrency: number,
+) {
   const info: RunInfo = JSON.parse(fs.readFileSync(path.join(dir, "run.json"), "utf8"));
   const cases = new Map(loadCases().map((item) => [item.id, item]));
   const answers = readJsonl<AnswerRow>(path.join(dir, "answers.jsonl"));
   const features = runFeatures(answers);
   const orphans = answers.filter((row) => !cases.has(row.case_id));
   if (orphans.length) {
-    console.warn(`  ${orphans.length} answers belong to cases no longer in cases.json; skipping them.`);
+    console.warn(
+      `  ${orphans.length} answers belong to cases no longer in cases.json; skipping them.`,
+    );
   }
   const rows = answers.filter((row) => cases.has(row.case_id));
 
@@ -401,7 +467,9 @@ async function gradeRun(dir: string, judgeConfig: JudgeConfig, allowSpend: boole
   }
 
   if (misses && !allowSpend) {
-    fail(`${misses} of ${rows.length} answers need judge calls on ${judgeConfig.model}. Re-run with --yes to spend.`);
+    fail(
+      `${misses} of ${rows.length} answers need judge calls on ${judgeConfig.model}. Re-run with --yes to spend.`,
+    );
   }
 
   const judge = new Judge(judgeConfig);
@@ -434,7 +502,9 @@ async function gradeRun(dir: string, judgeConfig: JudgeConfig, allowSpend: boole
   writeReport(dir);
   writeSummary(RUNS_DIR, RESULTS_PATH);
 
-  console.log(`${info.id}: graded ${lines.length} answers${failures.length ? `, ${failures.length} failed` : ""}. See ${path.relative(ROOT, path.join(dir, "report.md"))}.`);
+  console.log(
+    `${info.id}: graded ${lines.length} answers${failures.length ? `, ${failures.length} failed` : ""}. See ${path.relative(ROOT, path.join(dir, "report.md"))}.`,
+  );
   if (failures.length) {
     process.exitCode = 1;
   }
@@ -457,13 +527,19 @@ function review() {
     "",
     "| id | category | expect | verified | facts | sources |",
     "| --- | --- | --- | --- | --- | --- |",
-    ...cases.map((item) => `| [${item.id}](#${item.id}) | ${item.tags[0]} | ${item.expect} | ${item.verified ? "yes" : "no"} | ${item.facts.length} | ${item.sources.length} |`),
+    ...cases.map(
+      (item) =>
+        `| [${item.id}](#${item.id}) | ${item.tags[0]} | ${item.expect} | ${item.verified ? "yes" : "no"} | ${item.facts.length} | ${item.sources.length} |`,
+    ),
     "",
   ];
 
   for (const item of cases) {
     lines.push(`## ${item.id}`, "", fence(item.question), "");
-    lines.push(`Tags: ${item.tags.join(", ")}. Expect: **${item.expect}**. Verified: ${item.verified ? "yes" : "**no**"}.`, "");
+    lines.push(
+      `Tags: ${item.tags.join(", ")}. Expect: **${item.expect}**. Verified: ${item.verified ? "yes" : "**no**"}.`,
+      "",
+    );
     if (item.facts.length) {
       lines.push("Facts:", "");
       for (const fact of item.facts) {
@@ -476,7 +552,15 @@ function review() {
       lines.push("Must not:", "", ...item.must_not.map((rule) => `- ${rule}`), "");
     }
     if (item.sources.length) {
-      lines.push("Sources:", "", ...item.sources.map((source) => `- ${source.kind === "document" ? source.url : `${source.table} \`${source.id}\``}`), "");
+      lines.push(
+        "Sources:",
+        "",
+        ...item.sources.map(
+          (source) =>
+            `- ${source.kind === "document" ? source.url : `${source.table} \`${source.id}\``}`,
+        ),
+        "",
+      );
     }
     lines.push(`Provenance: ${item.provenance}`, "");
   }
@@ -488,7 +572,10 @@ function review() {
 function newRunDir(note: string): string {
   const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, "-");
   // Cut at a word boundary so the name does not end mid-word or on a hyphen.
-  const words = note.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  const words = note
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
   let slug = "";
   for (const word of words) {
     if (slug && slug.length + word.length + 1 > 40) {
@@ -501,7 +588,9 @@ function newRunDir(note: string): string {
 }
 
 function resolveRun(target: string): string {
-  const dir = fs.existsSync(path.join(RUNS_DIR, target)) ? path.join(RUNS_DIR, target) : path.resolve(target);
+  const dir = fs.existsSync(path.join(RUNS_DIR, target))
+    ? path.join(RUNS_DIR, target)
+    : path.resolve(target);
   if (!fs.existsSync(path.join(dir, "run.json"))) {
     fail(`no run at ${target}`);
   }
@@ -510,17 +599,26 @@ function resolveRun(target: string): string {
 }
 
 function gitState() {
-  const git = (...args: string[]) => execFileSync("git", args, { cwd: ROOT, encoding: "utf8" }).trim();
+  const git = (...args: string[]) =>
+    execFileSync("git", args, { cwd: ROOT, encoding: "utf8" }).trim();
   // evals/ changes on every run, so only the rest of the tree counts as dirty.
-  const dirty = git("status", "--porcelain", "--", ".", ":!evals/runs", ":!evals/results.md").length > 0;
+  const dirty =
+    git("status", "--porcelain", "--", ".", ":!evals/runs", ":!evals/results.md").length > 0;
   return { commit: git("rev-parse", "--short", "HEAD"), dirty };
 }
 
 function apiSha(): string {
   const dir = path.join(ROOT, "api");
   const hash = crypto.createHash("sha256");
-  for (const name of fs.readdirSync(dir).filter((name) => name.endsWith(".ts")).sort()) {
-    hash.update(name).update("\0").update(fs.readFileSync(path.join(dir, name))).update("\0");
+  for (const name of fs
+    .readdirSync(dir)
+    .filter((name) => name.endsWith(".ts"))
+    .sort()) {
+    hash
+      .update(name)
+      .update("\0")
+      .update(fs.readFileSync(path.join(dir, name)))
+      .update("\0");
   }
 
   return hash.digest("hex").slice(0, 12);
@@ -538,7 +636,8 @@ function corpusState(): RunInfo["corpus"] {
 
   const db = new DatabaseSync(file, { readOnly: true });
   try {
-    const count = (table: string) => Number((db.prepare(`SELECT count(*) AS n FROM ${table}`).get() as { n: number }).n);
+    const count = (table: string) =>
+      Number((db.prepare(`SELECT count(*) AS n FROM ${table}`).get() as { n: number }).n);
     return { documents: count("documents"), passages: count("passages") };
   } catch {
     return null;

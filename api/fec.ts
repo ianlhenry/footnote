@@ -1,5 +1,5 @@
-import type Anthropic from "@anthropic-ai/sdk";
 import type { DatabaseSync } from "node:sqlite";
+import type Anthropic from "@anthropic-ai/sdk";
 import type { SourceRef } from "./contract.ts";
 
 // FEC lookups Claude can call. Each matching record comes back as one
@@ -24,7 +24,12 @@ export interface ToolResult {
 }
 
 const OFFICES: Record<string, string> = { H: "House", S: "Senate", P: "President" };
-const STATUS: Record<string, string> = { C: "statutory candidate", F: "future candidate", N: "not yet a candidate", P: "prior-cycle candidate" };
+const STATUS: Record<string, string> = {
+  C: "statutory candidate",
+  F: "future candidate",
+  N: "not yet a candidate",
+  P: "prior-cycle candidate",
+};
 const ICI: Record<string, string> = { I: "incumbent", C: "challenger", O: "open seat" };
 const MONEY_FIELDS = {
   receipts: "TTL_RECEIPTS",
@@ -41,9 +46,19 @@ export const FEC_TOOLS: Anthropic.Tool[] = [
     input_schema: {
       type: "object",
       properties: {
-        name: { type: "string", description: "Words of the candidate's name, e.g. \"Talarico\" or \"Sherrod Brown\"." },
-        state: { type: "string", description: "Two-letter postal code of the state the office is in." },
-        office: { type: "string", enum: ["H", "S", "P"], description: "H House, S Senate, P President." },
+        name: {
+          type: "string",
+          description: 'Words of the candidate\'s name, e.g. "Talarico" or "Sherrod Brown".',
+        },
+        state: {
+          type: "string",
+          description: "Two-letter postal code of the state the office is in.",
+        },
+        office: {
+          type: "string",
+          enum: ["H", "S", "P"],
+          description: "H House, S Senate, P President.",
+        },
         party: { type: "string", description: "Three-letter FEC party code, e.g. DEM or REP." },
       },
       additionalProperties: false,
@@ -56,11 +71,20 @@ export const FEC_TOOLS: Anthropic.Tool[] = [
     input_schema: {
       type: "object",
       properties: {
-        by: { type: "string", enum: Object.keys(MONEY_FIELDS), description: "The total to rank by." },
+        by: {
+          type: "string",
+          enum: Object.keys(MONEY_FIELDS),
+          description: "The total to rank by.",
+        },
         office: { type: "string", enum: ["H", "S", "P"] },
         state: { type: "string", description: "Two-letter postal code." },
         party: { type: "string", description: "Three-letter FEC party code." },
-        limit: { type: "integer", minimum: 1, maximum: 20, description: "How many to return. Default 5." },
+        limit: {
+          type: "integer",
+          minimum: 1,
+          maximum: 20,
+          description: "How many to return. Default 5.",
+        },
       },
       required: ["by"],
       additionalProperties: false,
@@ -73,7 +97,10 @@ export const FEC_TOOLS: Anthropic.Tool[] = [
     input_schema: {
       type: "object",
       properties: {
-        name: { type: "string", description: "Words of the committee name. Each must start a word of the filed name." },
+        name: {
+          type: "string",
+          description: "Words of the committee name. Each must start a word of the filed name.",
+        },
         committee_id: { type: "string", description: "A committee ID such as C00916288." },
       },
       additionalProperties: false,
@@ -81,7 +108,11 @@ export const FEC_TOOLS: Anthropic.Tool[] = [
   },
 ];
 
-export function runFecTool(conn: DatabaseSync, name: string, input: Record<string, unknown>): ToolResult[] {
+export function runFecTool(
+  conn: DatabaseSync,
+  name: string,
+  input: Record<string, unknown>,
+): ToolResult[] {
   switch (name) {
     case "search_candidates":
       return searchCandidates(conn, input);
@@ -159,10 +190,15 @@ function searchCandidates(conn: DatabaseSync, input: Record<string, unknown>): T
   }
 
   const rows = conn
-    .prepare(`${CANDIDATE_SELECT} WHERE ${where.join(" AND ")} ORDER BY s.TTL_RECEIPTS DESC NULLS LAST LIMIT 200`)
+    .prepare(
+      `${CANDIDATE_SELECT} WHERE ${where.join(" AND ")} ORDER BY s.TTL_RECEIPTS DESC NULLS LAST LIMIT 200`,
+    )
     .all(...params) as unknown as CandidateRow[];
 
-  return rows.filter((row) => nameMatches(row.CAND_NAME, words)).slice(0, 10).map(candidateResult);
+  return rows
+    .filter((row) => nameMatches(row.CAND_NAME, words))
+    .slice(0, 10)
+    .map(candidateResult);
 }
 
 function rankCandidates(conn: DatabaseSync, input: Record<string, unknown>): ToolResult[] {
@@ -178,24 +214,32 @@ function rankCandidates(conn: DatabaseSync, input: Record<string, unknown>): Too
   filters(input, where, params);
 
   const rows = conn
-    .prepare(`${CANDIDATE_SELECT} WHERE ${where.join(" AND ")} ORDER BY s.${column} DESC LIMIT ${limit}`)
+    .prepare(
+      `${CANDIDATE_SELECT} WHERE ${where.join(" AND ")} ORDER BY s.${column} DESC LIMIT ${limit}`,
+    )
     .all(...params) as unknown as CandidateRow[];
   return rows.map(candidateResult);
 }
 
 function candidateResult(row: CandidateRow): ToolResult {
   const office = OFFICES[row.CAND_OFFICE ?? ""] ?? row.CAND_OFFICE ?? "unknown office";
-  const seat = row.CAND_OFFICE === "H" && row.CAND_OFFICE_DISTRICT ? `${row.CAND_OFFICE_ST}-${row.CAND_OFFICE_DISTRICT}` : row.CAND_OFFICE_ST;
+  const seat =
+    row.CAND_OFFICE === "H" && row.CAND_OFFICE_DISTRICT
+      ? `${row.CAND_OFFICE_ST}-${row.CAND_OFFICE_DISTRICT}`
+      : row.CAND_OFFICE_ST;
   const details = [
     `${row.CAND_NAME} (candidate ID ${row.CAND_ID})`,
     `party ${row.CAND_PTY_AFFILIATION ?? "unknown"}`,
     `${office}${seat ? `, ${seat}` : ""}`,
     row.CAND_ELECTION_YR ? `election year ${row.CAND_ELECTION_YR}` : null,
-    row.CAND_ICI ? ICI[row.CAND_ICI] ?? row.CAND_ICI : null,
-    row.CAND_STATUS ? STATUS[row.CAND_STATUS] ?? row.CAND_STATUS : null,
+    row.CAND_ICI ? (ICI[row.CAND_ICI] ?? row.CAND_ICI) : null,
+    row.CAND_STATUS ? (STATUS[row.CAND_STATUS] ?? row.CAND_STATUS) : null,
   ].filter(Boolean);
   const blocks: ResultBlock[] = [
-    { text: `FEC candidate record: ${details.join("; ")}.`, ref: { kind: "fec", table: "fec_candidate", id: row.CAND_ID } },
+    {
+      text: `FEC candidate record: ${details.join("; ")}.`,
+      ref: { kind: "fec", table: "fec_candidate", id: row.CAND_ID },
+    },
   ];
 
   if (row.HAS_SUMMARY) {
@@ -248,11 +292,20 @@ interface CommitteeRow {
 
 // Committee type codes from the FEC committee master file description.
 const COMMITTEE_TYPES: Record<string, string> = {
-  H: "House campaign committee", S: "Senate campaign committee", P: "presidential campaign committee",
-  N: "PAC (nonqualified)", Q: "PAC (qualified)", O: "super PAC (independent expenditure-only)",
-  V: "hybrid PAC (with noncontribution account), nonqualified", W: "hybrid PAC (with noncontribution account), qualified",
-  X: "party committee (nonqualified)", Y: "party committee (qualified)", I: "independent expenditor (person or group)",
-  U: "single-candidate independent expenditure committee", D: "delegate committee", E: "electioneering communication filer",
+  H: "House campaign committee",
+  S: "Senate campaign committee",
+  P: "presidential campaign committee",
+  N: "PAC (nonqualified)",
+  Q: "PAC (qualified)",
+  O: "super PAC (independent expenditure-only)",
+  V: "hybrid PAC (with noncontribution account), nonqualified",
+  W: "hybrid PAC (with noncontribution account), qualified",
+  X: "party committee (nonqualified)",
+  Y: "party committee (qualified)",
+  I: "independent expenditor (person or group)",
+  U: "single-candidate independent expenditure committee",
+  D: "delegate committee",
+  E: "electioneering communication filer",
   C: "communication cost filer",
 };
 
@@ -295,7 +348,10 @@ function searchCommittees(conn: DatabaseSync, input: Record<string, unknown>): T
         row.CAND_ID ? `candidate ID ${row.CAND_ID}` : null,
       ].filter(Boolean);
       const blocks: ResultBlock[] = [
-        { text: `FEC committee record: ${details.join("; ")}.`, ref: { kind: "fec", table: "fec_committee", id: row.CMTE_ID } },
+        {
+          text: `FEC committee record: ${details.join("; ")}.`,
+          ref: { kind: "fec", table: "fec_committee", id: row.CMTE_ID },
+        },
       ];
       if (row.HAS_SUMMARY) {
         const money = [
@@ -309,7 +365,11 @@ function searchCommittees(conn: DatabaseSync, input: Record<string, unknown>): T
           ref: { kind: "fec", table: "fec_pac_summary", id: row.CMTE_ID },
         });
       }
-      return { title: `${row.CMTE_NM} (${row.CMTE_ID})`, source: `https://www.fec.gov/data/committee/${row.CMTE_ID}/`, blocks };
+      return {
+        title: `${row.CMTE_NM} (${row.CMTE_ID})`,
+        source: `https://www.fec.gov/data/committee/${row.CMTE_ID}/`,
+        blocks,
+      };
     });
 }
 
@@ -318,7 +378,10 @@ function text(value: unknown): string | undefined {
 }
 
 function nameWords(name: string | undefined): string[] {
-  return (name ?? "").toUpperCase().split(/[^A-Z0-9']+/).filter((word) => word.length > 1);
+  return (name ?? "")
+    .toUpperCase()
+    .split(/[^A-Z0-9']+/)
+    .filter((word) => word.length > 1);
 }
 
 // Each query word must start a word of the filed name.
@@ -328,5 +391,7 @@ function nameMatches(filed: string, words: string[]): boolean {
 }
 
 function usd(value: number | null): string {
-  return value === null ? "not reported" : value.toLocaleString("en-US", { style: "currency", currency: "USD" });
+  return value === null
+    ? "not reported"
+    : value.toLocaleString("en-US", { style: "currency", currency: "USD" });
 }

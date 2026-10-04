@@ -29,7 +29,8 @@ function sourceLink(ref: SourceRef): string {
     return ref.document_url;
   }
 
-  const kind = ref.table === "fec_committee" || ref.table === "fec_pac_summary" ? "committee" : "candidate";
+  const kind =
+    ref.table === "fec_committee" || ref.table === "fec_pac_summary" ? "committee" : "candidate";
   return `https://www.fec.gov/data/${kind}/${ref.id}/`;
 }
 
@@ -40,7 +41,14 @@ function numberSources(citations: Citation[]): Map<string, Source> {
     const key = sourceKey(citation.source);
     let source = sources.get(key);
     if (!source) {
-      source = { number: sources.size + 1, key, ref: citation.source, title: citation.title, label: citation.label, quotes: [] };
+      source = {
+        number: sources.size + 1,
+        key,
+        ref: citation.source,
+        title: citation.title,
+        label: citation.label,
+        quotes: [],
+      };
       sources.set(key, source);
     }
     if (!source.quotes.includes(citation.quote)) {
@@ -54,7 +62,12 @@ function numberSources(citations: Citation[]): Map<string, Source> {
 // Insert a Markdown link to the source list after each cited claim, so the
 // markers survive Markdown rendering, table cells included. Claims are found
 // in order, so a repeated phrase is matched at its next occurrence.
-function withMarkers(id: string, text: string, citations: Citation[], sources: Map<string, Source>): string {
+function withMarkers(
+  id: string,
+  text: string,
+  citations: Citation[],
+  sources: Map<string, Source>,
+): string {
   const marks = new Map<number, number[]>();
   let cursor = 0;
   for (const citation of citations) {
@@ -77,7 +90,10 @@ function withMarkers(id: string, text: string, citations: Citation[], sources: M
   let marked = "";
   let start = 0;
   for (const end of [...marks.keys()].sort((a, b) => a - b)) {
-    const links = marks.get(end)!.map((number) => `[${number}](#${id}-source-${number})`).join("");
+    const links = marks
+      .get(end)!
+      .map((number) => `[${number}](#${id}-source-${number})`)
+      .join("");
     marked += text.slice(start, end) + links;
     start = end;
   }
@@ -107,7 +123,17 @@ function markdownComponents(id: string): Components {
   };
 }
 
-export function AnswerView({ id, text, details, seconds }: { id: string; text: string; details: AnswerDetails; seconds?: number }) {
+export function AnswerView({
+  id,
+  text,
+  details,
+  seconds,
+}: {
+  id: string;
+  text: string;
+  details: AnswerDetails;
+  seconds?: number;
+}) {
   const sources = numberSources(details.citations);
 
   return (
@@ -163,7 +189,12 @@ function Quote({ text }: { text: string }) {
     <blockquote className={long && !open ? "clamped" : undefined}>
       <span className="quote-text">{text}</span>
       {long && (
-        <button type="button" className="quote-toggle" onClick={() => setOpen(!open)} aria-expanded={open}>
+        <button
+          type="button"
+          className="quote-toggle"
+          onClick={() => setOpen(!open)}
+          aria-expanded={open}
+        >
           {open ? "Show less" : "Show more"}
         </button>
       )}
@@ -173,7 +204,9 @@ function Quote({ text }: { text: string }) {
 
 // For answers saved before citations carried a label.
 function fallbackLabel(ref: SourceRef): string {
-  return ref.kind === "passage" ? "Pew or Marist report" : `FEC ${ref.table.replace(/^fec_/, "").replaceAll("_", " ")} · ${ref.id}`;
+  return ref.kind === "passage"
+    ? "Pew or Marist report"
+    : `FEC ${ref.table.replace(/^fec_/, "").replaceAll("_", " ")} · ${ref.id}`;
 }
 
 // Three decimals below a dime, so a typical answer reads $0.031, not $0.03.
@@ -215,7 +248,11 @@ function describeOutput(call: ToolCall): string {
 // question, then each tool call Claude made.
 function Trace({ details, seconds }: { details: AnswerDetails; seconds?: number }) {
   const passages = details.retrieved.filter((item) => item.source.kind === "passage");
-  const inputTokens = details.usage.reduce((sum, call) => sum + call.input_tokens + call.cache_read_input_tokens + call.cache_creation_input_tokens, 0);
+  const inputTokens = details.usage.reduce(
+    (sum, call) =>
+      sum + call.input_tokens + call.cache_read_input_tokens + call.cache_creation_input_tokens,
+    0,
+  );
   const outputTokens = details.usage.reduce((sum, call) => sum + call.output_tokens, 0);
   // Null when any call's model has no price, or the answer predates costs.
   const cost = details.usage.every((call) => typeof call.cost_usd === "number")
@@ -244,6 +281,7 @@ function Trace({ details, seconds }: { details: AnswerDetails; seconds?: number 
           </ul>
         </li>
         {details.tool_calls.map((call, index) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: a finished trace never reorders, and a tool call has no id of its own
           <li key={index}>
             <strong>{call.name === "decline" ? "Declined" : call.name}</strong>
             {` (${describeInput(call.input)})`}
@@ -251,8 +289,8 @@ function Trace({ details, seconds }: { details: AnswerDetails; seconds?: number 
           </li>
         ))}
         <li>
-          <strong>Answered</strong> with {details.usage[0]?.model ?? "Claude"}, {inputTokens.toLocaleString()} tokens in,{" "}
-          {outputTokens.toLocaleString()} out
+          <strong>Answered</strong> with {details.usage[0]?.model ?? "Claude"},{" "}
+          {inputTokens.toLocaleString()} tokens in, {outputTokens.toLocaleString()} out
           <div className="tool-output">
             {cost !== null
               ? `Cost ${dollars(cost)} at list price for the Claude calls${details.usage.length > 1 ? ` (${details.usage.map((call) => dollars(call.cost_usd ?? 0)).join(" + ")})` : ""}. The Voyage search embedding is not included; it is a small fraction of a cent.`

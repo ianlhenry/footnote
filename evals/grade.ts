@@ -1,6 +1,6 @@
 import type { Answer, SourceRef } from "../api/contract.ts";
 import type { Case, ExpectedSource } from "./cases.ts";
-import type { FactsVerdict, CitationVerdict, Judge, JudgeUsage } from "./judge.ts";
+import type { CitationVerdict, FactsVerdict, Judge, JudgeUsage } from "./judge.ts";
 import { findFigures, findNumbers, stated } from "./numbers.ts";
 
 // One answer from /api/chat, as the runner stored it.
@@ -63,7 +63,12 @@ export function runFeatures(rows: AnswerRow[]): RunFeatures {
   };
 }
 
-export async function grade(item: Case, row: AnswerRow, features: RunFeatures, judge: Judge): Promise<GradeRow> {
+export async function grade(
+  item: Case,
+  row: AnswerRow,
+  features: RunFeatures,
+  judge: Judge,
+): Promise<GradeRow> {
   const { answer } = row;
   const details: GradeRow["details"] = {};
   const judgeUsage: JudgeUsage[] = [];
@@ -136,7 +141,8 @@ export async function grade(item: Case, row: AnswerRow, features: RunFeatures, j
       judgeUsage.push(verdict.usage);
       details.citations = verdict.verdict.citations;
       citationSupport =
-        verdict.verdict.citations.filter((citation) => citation.supports).length / answer.citations.length;
+        verdict.verdict.citations.filter((citation) => citation.supports).length /
+        answer.citations.length;
     }
   }
 
@@ -148,7 +154,8 @@ export async function grade(item: Case, row: AnswerRow, features: RunFeatures, j
     verified: item.verified,
     metrics: {
       facts: answerCase ? supported / item.facts.length : null,
-      numbers: answerCase && values.length ? (values.length - missingValues.length) / values.length : null,
+      numbers:
+        answerCase && values.length ? (values.length - missingValues.length) / values.length : null,
       no_errors: contradicted || violated ? 0 : 1,
       refusal: Number((answer.status === "refused") === (item.expect === "refuse")),
       refusal_text: Number(facts.verdict.declines === (item.expect === "refuse")),
