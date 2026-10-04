@@ -15,6 +15,8 @@ The server listens on http://127.0.0.1:8000. `POST /api/chat` takes `{ "content"
 
 The reply also carries `status` (`answered` or `refused`), `citations`, `retrieved`, `tool_calls`, and `usage`, defined in `api/contract.ts`. The eval in `evals/` grades them. `retrieved` lists the passages given to Claude and `citations` the passages it cited. `tool_calls` lists each FEC tool call with its input and the records it returned. `status` is `refused` when Claude calls the `decline` tool, which it does only when it can answer no part of the question; `decline_reason` then says why (`not_loaded`, `out_of_scope`, or `opinion`). Otherwise `status` is `answered` and `decline_reason` is null.
 
+`POST /api/chat/stream` takes the same body and runs the same agent, but answers with server-sent events while it works: `status` (what it is doing), `text` (each piece of Claude's reply, by turn), `turn_end` (a turn ended, and whether in tool calls, which makes that turn's text a note rather than the answer), then `done` with the full answer in the same shape as `/api/chat`, or `error`. The event types are `StreamEvent` in `api/contract.ts`. The UI uses this endpoint; the eval uses `/api/chat`.
+
 `npm run dev` starts this process and the frontend together. See [web/README.md](../web/README.md).
 
 The server reads the repo `.env` on startup. Variables already set in the shell take precedence. See `.env.example`.

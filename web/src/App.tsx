@@ -1,18 +1,60 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { AnswerView, type AnswerDetails } from "./Answer.tsx";
+import type { StreamEvent } from "../../api/contract.ts";
+import { AnswerView, StreamingText, type AnswerDetails } from "./Answer.tsx";
 
 type Message =
   | { id: string; role: "user"; content: string }
-  | { id: string; role: "assistant"; content: string; details?: AnswerDetails; seconds?: number; error?: boolean };
+  | {
+      id: string;
+      role: "assistant";
+      content: string;
+      details?: AnswerDetails;
+      seconds?: number;
+      notes?: string[];
+      error?: boolean;
+    };
 
-type ChatResponse = {
-  messages: ({ id: number; role: "user" | "assistant"; content: string } & Partial<AnswerDetails>)[];
-};
+// What the agent has said so far for the question in progress.
+interface Pending {
+  status: string;
+  // Text of the turn being written.
+  draft: string;
+  // Text from turns that ended in tool calls.
+  notes: string[];
+}
+
+const STARTING: Pending = { status: "Searching Pew and Marist reports", draft: "", notes: [] };
+
+// Yield each server-sent event's data, parsed, as it arrives. EventSource
+// cannot POST, so the stream is read from fetch.
+async function* readEvents(body: ReadableStream<Uint8Array>): AsyncGenerator<StreamEvent> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) return;
+    // stream: true keeps a character split across chunks intact.
+    buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, "\n");
+    let end: number;
+    while ((end = buffer.indexOf("\n\n")) !== -1) {
+      const chunk = buffer.slice(0, end);
+      buffer = buffer.slice(end + 2);
+      const data = chunk
+        .split("\n")
+        .filter((line) => line.startsWith("data:"))
+        .map((line) => line.slice(5).replace(/^ /, ""))
+        .join("\n");
+      if (data) yield JSON.parse(data) as StreamEvent;
+    }
+  }
+}
 
 export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [content, setContent] = useState("");
-  const [sending, setSending] = useState(false);
+  const [pending, setPending] = useState<Pending | null>(null);
+  const sending = pending !== null;
   const list = useRef<HTMLOListElement>(null);
   const latestAnswer = useRef<HTMLLIElement>(null);
 
@@ -30,6 +72,10 @@ export default function App() {
     list.current.scrollTo({ top: latestAnswer.current.offsetTop, behavior: "smooth" });
   }, [messages]);
 
+  function fail(message: string) {
+    setMessages((current) => [...current, { id: `error-${Date.now()}`, role: "assistant", content: message, error: true }]);
+  }
+
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const text = content.trim();
@@ -38,41 +84,57 @@ export default function App() {
     const started = performance.now();
     // Show the question right away, while the agent works.
     setMessages((current) => [...current, { id: `user-${Date.now()}`, role: "user", content: text }]);
-    setSending(true);
+    setPending(STARTING);
     setContent("");
+    let notes: string[] = [];
+    let draft = "";
     try {
-      const response = await fetch("/api/chat", {
+      const response = await fetch("/api/chat/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: text }),
       });
-      const data = await response.json().catch(() => null);
-      if (!response.ok) {
+      if (!response.ok || !response.body) {
+        const data = await response.json().catch(() => null);
         throw new Error(data?.detail ? String(data.detail) : `Request failed (${response.status})`);
       }
-      const reply = [...(data as ChatResponse).messages].reverse().find((message) => message.role === "assistant");
-      if (!reply) throw new Error("The server sent no answer.");
-      const { id, content: answer, status, decline_reason, citations, retrieved, tool_calls, usage } = reply;
-      const details =
-        status && citations && retrieved && tool_calls && usage
-          ? { status, decline_reason: decline_reason ?? null, citations, retrieved, tool_calls, usage }
-          : undefined;
-      setMessages((current) => [
-        ...current,
-        { id: `assistant-${id}`, role: "assistant", content: answer, details, seconds: (performance.now() - started) / 1000 },
-      ]);
+      let finished = false;
+      for await (const update of readEvents(response.body)) {
+        if (update.type === "status") {
+          setPending((current) => current && { ...current, status: update.message });
+        } else if (update.type === "text") {
+          draft += update.text;
+          setPending((current) => current && { ...current, draft });
+        } else if (update.type === "turn_end") {
+          // A turn that ends in tool calls wrote a note, not the answer.
+          if (update.tool_use) {
+            if (draft.trim()) notes = [...notes, draft.trim()];
+            draft = "";
+            setPending((current) => current && { ...current, draft, notes });
+          }
+        } else if (update.type === "error") {
+          throw new Error(update.detail);
+        } else if (update.type === "done") {
+          finished = true;
+          const { text: answer, ...details } = update.answer;
+          setMessages((current) => [
+            ...current,
+            {
+              id: `assistant-${Date.now()}`,
+              role: "assistant",
+              content: answer,
+              details,
+              notes,
+              seconds: (performance.now() - started) / 1000,
+            },
+          ]);
+        }
+      }
+      if (!finished) throw new Error("The answer was cut off before it finished.");
     } catch (error) {
-      setMessages((current) => [
-        ...current,
-        {
-          id: `error-${Date.now()}`,
-          role: "assistant",
-          content: error instanceof Error ? error.message : "Something went wrong.",
-          error: true,
-        },
-      ]);
+      fail(error instanceof Error ? error.message : "Something went wrong.");
     } finally {
-      setSending(false);
+      setPending(null);
     }
   }
 
@@ -89,19 +151,26 @@ export default function App() {
             className={`message ${message.role}${message.role === "assistant" && message.error ? " error" : ""}`}>
             <span className="role">{message.role}</span>
             {message.role === "assistant" && message.details ? (
-              <AnswerView id={message.id} text={message.content} details={message.details} seconds={message.seconds} />
+              <AnswerView
+                id={message.id}
+                text={message.content}
+                details={message.details}
+                seconds={message.seconds}
+                notes={message.notes}
+              />
             ) : (
               <p>{message.content}</p>
             )}
           </li>
         ))}
-        {sending && (
-          <li className="message assistant pending" aria-live="polite">
+        {pending && (
+          <li className="message assistant pending">
             <span className="role">assistant</span>
-            <p className="thinking">
+            <p className="thinking" aria-live="polite">
               <span className="spinner" aria-hidden="true" />
-              Searching Pew and Marist reports…
+              {pending.status}…
             </p>
+            {pending.draft && <StreamingText text={pending.draft} />}
           </li>
         )}
       </ol>

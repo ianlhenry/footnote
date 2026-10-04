@@ -15,7 +15,7 @@ Or from this directory, after `npm install`:
 npm run dev
 ```
 
-Each answer shows numbered citation markers that link to a source list below it, with the quoted text and a link to the article or FEC record. A badge marks answers the agent declined, with the reason. "Trace" expands to the passages retrieved, each FEC tool call and what it returned, and the Claude calls, tokens, and seconds the answer took. A spinner shows while the agent works.
+Each answer shows numbered citation markers that link to a source list below it, with the quoted text and a link to the article or FEC record. A badge marks answers the agent declined, with the reason. "Trace" expands to the passages retrieved, each FEC tool call and what it returned, and the Claude calls, tokens, and seconds the answer took. While the agent works, a spinner shows what it is doing, such as searching reports or looking up FEC candidates, and the reply appears as Claude writes it. Citation markers and sources are added when it finishes. The page reads `POST /api/chat/stream`.
 
 Open http://127.0.0.1:5173. Vite proxies `/api` to http://127.0.0.1:8000. Start the API first, or use `npm run dev` from the repo root to start both.
 
