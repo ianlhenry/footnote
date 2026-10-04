@@ -1,0 +1,23 @@
+---
+description: Never run real imports, paid API calls, git commits, or git pushes without the user's explicit consent
+alwaysApply: true
+---
+
+# No real imports, paid API calls, git commits, or git pushes without explicit consent
+
+Never run a real ingest, anything that calls a paid or external API with the user's keys, a git commit, or a git push, unless the user explicitly says to in the current conversation. This applies to agent loops and automations too.
+
+Without consent, the most you may do is:
+- `--dry-run` runs, such as `.venv/bin/python -m server.ingest --dry-run`
+- reading local caches, manifests, and the database read-only
+- fetching public pages and PDFs into the ingestion cache, which dry runs already do
+- read-only git commands, such as `git status`, `git diff`, and `git log`
+
+Needs explicit consent first:
+- `python -m server.ingest` without `--dry-run`, or calling `ingest_pew()`, `ingest_marist()`, `ingest_fec()`, or `ingest_articles()` without `dry_run=True`
+- any Voyage embedding call, or any other request that uses `VOYAGE_API_KEY` or another key from `.env`
+- anything that writes to or replaces tables in `data/papertrail.sqlite`
+- any `git commit`, including amends, rebases, and other history rewrites
+- any `git push`, including force pushes and pushing new branches or tags
+
+Earlier consent does not carry over to later runs, even in the same task. Ask each time, and say what the run will do: which API it calls, roughly how many requests or passages, and which tables it writes. For a commit, say which files and the message. For a push, say which branch, which remote, and whether it rewrites history.
