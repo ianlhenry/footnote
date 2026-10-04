@@ -1,5 +1,5 @@
 ---
-description: Code style for TypeScript and TSX
+description: Code style for TypeScript and TSX, including function documentation
 globs: "**/*.{ts,tsx}"
 alwaysApply: true
 ---
@@ -44,4 +44,22 @@ const started = performance.now();
 setSending(true);
 
 const response = await fetch("/api/chat", { method: "POST", body });
+```
+
+## Document every function
+
+Every named function needs a comment directly above it: function declarations, named function expressions, class methods, and function components. Say what it does, what each input means, and what it returns or changes. A few lines is enough. Skip anonymous callbacks passed to `map`, `filter`, `forEach`, and event handlers.
+
+Do not restate the types. Say what the values mean, and for a `void` function say what it writes, renders, or sends.
+
+```ts
+// Bad: nothing above the function.
+export async function searchPassages(question: string, k: number): Promise<Passage[]> {
+
+// Good
+// Find the passages closest in meaning to a question.
+// question: the user's question. It is embedded with Voyage before the search.
+// k: how many passages to return.
+// Returns those passages, closest first, with their text and document details.
+export async function searchPassages(question: string, k: number): Promise<Passage[]> {
 ```

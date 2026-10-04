@@ -1,0 +1,10 @@
+---
+description: State a short plan and wait for approval before writing code
+alwaysApply: true
+---
+
+# Plan before writing code
+
+Before editing or creating code, state the plan in three to five lines and wait for the user to approve it. Do not start the edits in the same turn.
+
+The plan says what will change and what will stay the same. A question or a review needs no plan. When the user already spelled out the exact change, that message is the approval.

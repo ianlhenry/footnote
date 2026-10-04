@@ -1,0 +1,16 @@
+---
+description: Keep each change to one purpose, with no refactoring outside the task
+alwaysApply: true
+---
+
+# Keep changes small
+
+One purpose per change. Do the task the user asked for, and nothing beside it.
+
+Do not refactor, rename, reformat, or clean up code the task does not touch. If something else looks worth doing, mention it and leave it.
+
+```ts
+// Asked to fix the error message in onSubmit.
+// Bad: also rename `content` to `draft` and restyle the form.
+// Good: change the error message, and stop.
+```

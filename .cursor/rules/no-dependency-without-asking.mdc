@@ -1,0 +1,10 @@
+---
+description: Do not add a dependency without asking first
+alwaysApply: true
+---
+
+# Ask before adding a dependency
+
+Do not add or upgrade a package unless the user agrees first. This includes devDependencies. Say which package, why it is needed, and which file it goes in: `package.json`, `web/package.json`, or a Python requirement.
+
+A package already in the repo may be imported without asking.
