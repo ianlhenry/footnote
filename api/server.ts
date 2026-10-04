@@ -1,8 +1,13 @@
+import fs from "node:fs";
+import Anthropic from "@anthropic-ai/sdk";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
+import { answer, MissingKeyError } from "./agent.ts";
 import { connect } from "./db.ts";
 
-const PLACEHOLDER = "Not wired yet.";
+const envFile = new URL("../.env", import.meta.url);
+if (fs.existsSync(envFile)) process.loadEnvFile(envFile);
+
 let nextId = 1;
 
 function takeId(): number {
@@ -37,10 +42,12 @@ app.all("/api/chat", async (c) => {
     return c.json({ detail: "content is required" }, 400);
   }
 
+  const reply = await answer(content);
+
   return c.json({
     messages: [
       { id: takeId(), role: "user", content },
-      { id: takeId(), role: "assistant", content: PLACEHOLDER },
+      { id: takeId(), role: "assistant", content: reply },
     ],
   });
 });
@@ -49,6 +56,12 @@ app.notFound((c) => c.json({ detail: "Not found" }, 404));
 
 app.onError((error, c) => {
   console.error(error);
+  if (error instanceof MissingKeyError) {
+    return c.json({ detail: error.message }, 503);
+  }
+  if (error instanceof Anthropic.APIError) {
+    return c.json({ detail: "Model request failed" }, 502);
+  }
   return c.json({ detail: "Internal server error" }, 500);
 });
 

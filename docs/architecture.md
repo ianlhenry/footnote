@@ -10,15 +10,19 @@ flowchart TD
   db[("data/papertrail.sqlite")]
   files["data/ingestion/"]
   ingest["Python · server/ingest"]
+  claude[Anthropic Messages API]
 
   browser --> vite
   vite -->|"proxies /api"| hono
   hono -->|"node:sqlite + sqlite-vec"| db
+  hono -->|"@anthropic-ai/sdk"| claude
   files --> ingest
   ingest --> db
 ```
 
 The page is served by Vite, so the browser's origin is port 5173. The chat API is a different process. The proxy makes `/api/chat` a same-origin request. Calling port 8000 from the page directly would be cross-origin.
+
+The API answers each chat message with one Claude call from `api/agent.ts`, which is where the agent loop will grow. It does not send history or use tools yet.
 
 `npm run dev` starts Vite and the API together. Ingestion is a separate batch run. It reads `data/ingestion/` and writes the database. `data/` is gitignored.
 

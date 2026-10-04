@@ -16,6 +16,7 @@ Without consent, the most you may do is:
 Needs explicit consent first:
 - `python -m server.ingest` without `--dry-run`, or calling `ingest_pew()`, `ingest_marist()`, `ingest_fec()`, or `ingest_articles()` without `dry_run=True`
 - any Voyage embedding call, or any other request that uses `VOYAGE_API_KEY` or another key from `.env`
+- any Anthropic call that uses `ANTHROPIC_API_KEY`, including sending a message to `/api/chat` while the key is set
 - anything that writes to or replaces tables in `data/papertrail.sqlite`
 - any `git commit`, including amends, rebases, and other history rewrites
 - any `git push`, including force pushes and pushing new branches or tags

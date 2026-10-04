@@ -7,7 +7,7 @@ import * as sqliteVec from "sqlite-vec";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 export function databasePath(): string {
-  const configured = process.env.DATABASE_PATH ?? "data/papertrail.sqlite";
+  const configured = process.env.DATABASE_PATH || "data/papertrail.sqlite";
   return path.isAbsolute(configured) ? configured : path.join(repoRoot, configured);
 }
 

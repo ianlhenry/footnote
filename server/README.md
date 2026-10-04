@@ -11,8 +11,11 @@ npm install
 npm run dev:api
 ```
 
-The server listens on http://127.0.0.1:8000. `POST /api/chat` takes `{ "content": "..." }` and returns the user message plus an assistant message.
+The server listens on http://127.0.0.1:8000. `POST /api/chat` takes `{ "content": "..." }` and returns the user message plus Claude's reply. `api/agent.ts` makes one Messages API call per question, with no history or tools yet.
 
 `npm run dev` starts this process and the frontend together. See [web/README.md](../web/README.md).
 
-The database defaults to `data/papertrail.sqlite`. Set `DATABASE_PATH` to use another file. See `.env.example`. The process does not load `.env` by itself.
+The server reads the repo `.env` on startup. Variables already set in the shell take precedence. See `.env.example`.
+
+- `ANTHROPIC_API_KEY` is required for chat. Without it, `/api/chat` returns 503. Errors from Anthropic return 502.
+- `DATABASE_PATH` overrides the database file, which defaults to `data/papertrail.sqlite`.
