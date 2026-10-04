@@ -1,0 +1,47 @@
+---
+description: Code style for TypeScript and TSX
+globs: "**/*.{ts,tsx}"
+alwaysApply: true
+---
+
+# Code style
+
+## Always brace `if` bodies
+
+Never put an `if` body on the same line without braces. Always use `{ }`, with the body on its own line. This applies to `else`, `for`, and `while` too.
+
+```ts
+// Bad
+if (!text || sending) return;
+
+// Good
+if (!text || sending) {
+  return;
+}
+```
+
+## Separate conceptually distinct blocks with a blank line
+
+Put a blank line between groups of statements that do different things, for example: input validation, setting up state, the main work, and building the result. Keep statements that belong to one step together, without blank lines between them.
+
+```ts
+// Bad
+const text = content.trim();
+if (!text) {
+  return;
+}
+const started = performance.now();
+setSending(true);
+const response = await fetch("/api/chat", { method: "POST", body });
+
+// Good
+const text = content.trim();
+if (!text) {
+  return;
+}
+
+const started = performance.now();
+setSending(true);
+
+const response = await fetch("/api/chat", { method: "POST", body });
+```

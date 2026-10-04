@@ -18,14 +18,19 @@ export default function App() {
 
   // While the agent works, show the question and the spinner at the bottom.
   useEffect(() => {
-    if (sending) list.current?.scrollTo({ top: list.current.scrollHeight, behavior: "smooth" });
+    if (sending) {
+      list.current?.scrollTo({ top: list.current.scrollHeight, behavior: "smooth" });
+    }
   }, [sending]);
 
   // When an answer arrives, bring its first line to the top instead of
   // jumping to its end, so it can be read from the start.
   useEffect(() => {
     const last = messages.at(-1);
-    if (last?.role !== "assistant" || !list.current || !latestAnswer.current) return;
+    if (last?.role !== "assistant" || !list.current || !latestAnswer.current) {
+      return;
+    }
+
     // .messages is position: relative, so offsetTop is measured from the list.
     list.current.scrollTo({ top: latestAnswer.current.offsetTop, behavior: "smooth" });
   }, [messages]);
@@ -33,13 +38,16 @@ export default function App() {
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const text = content.trim();
-    if (!text || sending) return;
+    if (!text || sending) {
+      return;
+    }
 
     const started = performance.now();
     // Show the question right away, while the agent works.
     setMessages((current) => [...current, { id: `user-${Date.now()}`, role: "user", content: text }]);
     setSending(true);
     setContent("");
+
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
@@ -47,16 +55,22 @@ export default function App() {
         body: JSON.stringify({ content: text }),
       });
       const data = await response.json().catch(() => null);
+
       if (!response.ok) {
         throw new Error(data?.detail ? String(data.detail) : `Request failed (${response.status})`);
       }
+
       const reply = [...(data as ChatResponse).messages].reverse().find((message) => message.role === "assistant");
-      if (!reply) throw new Error("The server sent no answer.");
+      if (!reply) {
+        throw new Error("The server sent no answer.");
+      }
+
       const { id, content: answer, status, decline_reason, citations, retrieved, tool_calls, usage } = reply;
       const details =
         status && citations && retrieved && tool_calls && usage
           ? { status, decline_reason: decline_reason ?? null, citations, retrieved, tool_calls, usage }
           : undefined;
+
       setMessages((current) => [
         ...current,
         { id: `assistant-${id}`, role: "assistant", content: answer, details, seconds: (performance.now() - started) / 1000 },
@@ -100,7 +114,7 @@ export default function App() {
             <span className="role">assistant</span>
             <p className="thinking">
               <span className="spinner" aria-hidden="true" />
-              Searching Pew and Marist reports…
+              Searching Pew and Marist reports and FEC records…
             </p>
           </li>
         )}

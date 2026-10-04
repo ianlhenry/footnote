@@ -7,7 +7,9 @@ import { connect } from "./db.ts";
 import { MissingVoyageKeyError, VoyageError } from "./retrieval.ts";
 
 const envFile = new URL("../.env", import.meta.url);
-if (fs.existsSync(envFile)) process.loadEnvFile(envFile);
+if (fs.existsSync(envFile)) {
+  process.loadEnvFile(envFile);
+}
 
 let nextId = 1;
 
@@ -57,6 +59,7 @@ app.notFound((c) => c.json({ detail: "Not found" }, 404));
 
 app.onError((error, c) => {
   console.error(error);
+
   if (error instanceof MissingKeyError || error instanceof MissingVoyageKeyError) {
     return c.json({ detail: error.message }, 503);
   }

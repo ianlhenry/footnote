@@ -130,12 +130,17 @@ For each citation, say whether the quoted source text, on its own, supports the 
       .createHash("sha256")
       .update(JSON.stringify({ kind, version: JUDGE_PROMPT_VERSIONS[kind], ...this.config, prompt }))
       .digest("hex");
+
     const cachePath = path.join(CACHE_DIR, `${key}.json`);
     if (fs.existsSync(cachePath)) {
       const cached = JSON.parse(fs.readFileSync(cachePath, "utf8"));
       return { verdict: schema.parse(cached.verdict), usage: { ...cached.usage, cached: true } };
     }
-    if (this.offline) throw new JudgeMiss();
+
+    if (this.offline) {
+      throw new JudgeMiss();
+    }
+
     this.client ??= new Anthropic();
     const response = await this.client.messages.parse({
       model: this.config.model,
@@ -144,14 +149,22 @@ For each citation, say whether the quoted source text, on its own, supports the 
       output_config: { effort: this.config.effort, format: zodOutputFormat(schema) },
       messages: [{ role: "user", content: prompt }],
     });
+
     // A judge that was swapped for another model grades differently, so the
     // verdict would not be comparable with other runs.
     if (response.model !== this.config.model) {
       throw new Error(`judge served by ${response.model}, expected ${this.config.model}`);
     }
-    if (response.stop_reason === "refusal") throw new Error("judge refused to grade");
-    if (response.stop_reason === "max_tokens") throw new Error("judge hit max_tokens");
-    if (response.parsed_output == null) throw new Error("judge output did not match the schema");
+    if (response.stop_reason === "refusal") {
+      throw new Error("judge refused to grade");
+    }
+    if (response.stop_reason === "max_tokens") {
+      throw new Error("judge hit max_tokens");
+    }
+    if (response.parsed_output == null) {
+      throw new Error("judge output did not match the schema");
+    }
+
     const usage: JudgeUsage = {
       model: response.model,
       input_tokens: response.usage.input_tokens,

@@ -25,7 +25,10 @@ function sourceKey(ref: SourceRef): string {
 }
 
 function sourceLink(ref: SourceRef): string {
-  if (ref.kind === "passage") return ref.document_url;
+  if (ref.kind === "passage") {
+    return ref.document_url;
+  }
+
   const kind = ref.table === "fec_committee" || ref.table === "fec_pac_summary" ? "committee" : "candidate";
   return `https://www.fec.gov/data/${kind}/${ref.id}/`;
 }
@@ -40,8 +43,11 @@ function numberSources(citations: Citation[]): Map<string, Source> {
       source = { number: sources.size + 1, key, ref: citation.source, title: citation.title, label: citation.label, quotes: [] };
       sources.set(key, source);
     }
-    if (!source.quotes.includes(citation.quote)) source.quotes.push(citation.quote);
+    if (!source.quotes.includes(citation.quote)) {
+      source.quotes.push(citation.quote);
+    }
   }
+
   return sources;
 }
 
@@ -53,14 +59,21 @@ function withMarkers(id: string, text: string, citations: Citation[], sources: M
   let cursor = 0;
   for (const citation of citations) {
     const at = citation.claim ? text.indexOf(citation.claim, cursor) : -1;
-    if (at === -1) continue;
+    if (at === -1) {
+      continue;
+    }
+
     const end = at + citation.claim.length;
     cursor = at;
+
     const numbers = marks.get(end) ?? [];
     const number = sources.get(sourceKey(citation.source))!.number;
-    if (!numbers.includes(number)) numbers.push(number);
+    if (!numbers.includes(number)) {
+      numbers.push(number);
+    }
     marks.set(end, numbers);
   }
+
   let marked = "";
   let start = 0;
   for (const end of [...marks.keys()].sort((a, b) => a - b)) {
@@ -68,6 +81,7 @@ function withMarkers(id: string, text: string, citations: Citation[], sources: M
     marked += text.slice(start, end) + links;
     start = end;
   }
+
   return marked + text.slice(start);
 }
 
@@ -83,6 +97,7 @@ function markdownComponents(id: string): Components {
           </a>
         );
       }
+
       return (
         <a href={href} target="_blank" rel="noreferrer">
           {children}
@@ -94,6 +109,7 @@ function markdownComponents(id: string): Components {
 
 export function AnswerView({ id, text, details, seconds }: { id: string; text: string; details: AnswerDetails; seconds?: number }) {
   const sources = numberSources(details.citations);
+
   return (
     <div className="answer">
       {details.status === "refused" && (
@@ -142,6 +158,7 @@ const LONG_QUOTE = 280;
 function Quote({ text }: { text: string }) {
   const [open, setOpen] = useState(false);
   const long = text.length > LONG_QUOTE;
+
   return (
     <blockquote className={long && !open ? "clamped" : undefined}>
       <span className="quote-text">{text}</span>
@@ -165,21 +182,32 @@ function dollars(value: number): string {
 }
 
 function describeInput(input: unknown): string {
-  if (!input || typeof input !== "object") return "";
+  if (!input || typeof input !== "object") {
+    return "";
+  }
+
   return Object.entries(input as Record<string, unknown>)
     .map(([key, value]) => `${key}: ${String(value)}`)
     .join(", ");
 }
 
 function describeOutput(call: ToolCall): string {
-  if (call.name === "decline") return "";
+  if (call.name === "decline") {
+    return "";
+  }
+
   if (Array.isArray(call.output)) {
-    if (!call.output.length) return "no records";
+    if (!call.output.length) {
+      return "no records";
+    }
+
     return `${call.output.length} record${call.output.length === 1 ? "" : "s"}: ${call.output.join("; ")}`;
   }
+
   if (call.output && typeof call.output === "object" && "error" in call.output) {
     return `error: ${String((call.output as { error: unknown }).error)}`;
   }
+
   return "";
 }
 
@@ -199,6 +227,7 @@ function Trace({ details, seconds }: { details: AnswerDetails; seconds?: number 
     cost !== null ? dollars(cost) : null,
     seconds !== undefined ? `${seconds.toFixed(1)}s` : null,
   ].filter(Boolean);
+
   return (
     <details className="trace">
       <summary>Trace · {summary.join(" · ")}</summary>

@@ -49,6 +49,7 @@ export function loadCases(path: URL | string = CASES_PATH): Case[] {
   if (problems.length) {
     throw new Error(`cases.json has problems:\n${problems.map((p) => `  ${p}`).join("\n")}`);
   }
+
   return cases;
 }
 
@@ -57,8 +58,11 @@ export function checkCases(cases: Case[]): string[] {
   const problems: string[] = [];
   const seen = new Set<string>();
   for (const item of cases) {
-    if (seen.has(item.id)) problems.push(`${item.id}: duplicate id`);
+    if (seen.has(item.id)) {
+      problems.push(`${item.id}: duplicate id`);
+    }
     seen.add(item.id);
+
     if (item.expect === "answer" && item.facts.length === 0) {
       problems.push(`${item.id}: an answer case needs at least one fact`);
     }
@@ -69,5 +73,6 @@ export function checkCases(cases: Case[]): string[] {
       problems.push(`${item.id}: an answer case needs at least one expected source`);
     }
   }
+
   return problems;
 }

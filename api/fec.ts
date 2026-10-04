@@ -128,9 +128,19 @@ function filters(input: Record<string, unknown>, where: string[], params: string
   const state = text(input.state)?.toUpperCase();
   const office = text(input.office)?.toUpperCase();
   const party = text(input.party)?.toUpperCase();
-  if (state) (where.push("c.CAND_OFFICE_ST = ?"), params.push(state));
-  if (office) (where.push("c.CAND_OFFICE = ?"), params.push(office));
-  if (party) (where.push("c.CAND_PTY_AFFILIATION = ?"), params.push(party));
+
+  if (state) {
+    where.push("c.CAND_OFFICE_ST = ?");
+    params.push(state);
+  }
+  if (office) {
+    where.push("c.CAND_OFFICE = ?");
+    params.push(office);
+  }
+  if (party) {
+    where.push("c.CAND_PTY_AFFILIATION = ?");
+    params.push(party);
+  }
 }
 
 function searchCandidates(conn: DatabaseSync, input: Record<string, unknown>): ToolResult[] {
@@ -140,22 +150,33 @@ function searchCandidates(conn: DatabaseSync, input: Record<string, unknown>): T
   filters(input, where, params);
   // SQL narrows by substring; nameMatches then requires each word to start a
   // word of the name, so "Hinson" does not match HUTCHINSON.
-  for (const word of words) (where.push("c.CAND_NAME LIKE ?"), params.push(`%${word}%`));
-  if (!where.length) throw new Error("give at least a name, state, office, or party");
+  for (const word of words) {
+    where.push("c.CAND_NAME LIKE ?");
+    params.push(`%${word}%`);
+  }
+  if (!where.length) {
+    throw new Error("give at least a name, state, office, or party");
+  }
+
   const rows = conn
     .prepare(`${CANDIDATE_SELECT} WHERE ${where.join(" AND ")} ORDER BY s.TTL_RECEIPTS DESC NULLS LAST LIMIT 200`)
     .all(...params) as unknown as CandidateRow[];
+
   return rows.filter((row) => nameMatches(row.CAND_NAME, words)).slice(0, 10).map(candidateResult);
 }
 
 function rankCandidates(conn: DatabaseSync, input: Record<string, unknown>): ToolResult[] {
   const by = text(input.by) as keyof typeof MONEY_FIELDS | undefined;
-  if (!by || !(by in MONEY_FIELDS)) throw new Error(`by must be one of ${Object.keys(MONEY_FIELDS).join(", ")}`);
+  if (!by || !(by in MONEY_FIELDS)) {
+    throw new Error(`by must be one of ${Object.keys(MONEY_FIELDS).join(", ")}`);
+  }
+
   const column = MONEY_FIELDS[by];
   const limit = Math.min(20, Math.max(1, Number(input.limit ?? 5) || 5));
   const where = [`s.${column} IS NOT NULL`];
   const params: string[] = [];
   filters(input, where, params);
+
   const rows = conn
     .prepare(`${CANDIDATE_SELECT} WHERE ${where.join(" AND ")} ORDER BY s.${column} DESC LIMIT ${limit}`)
     .all(...params) as unknown as CandidateRow[];
@@ -176,6 +197,7 @@ function candidateResult(row: CandidateRow): ToolResult {
   const blocks: ResultBlock[] = [
     { text: `FEC candidate record: ${details.join("; ")}.`, ref: { kind: "fec", table: "fec_candidate", id: row.CAND_ID } },
   ];
+
   if (row.HAS_SUMMARY) {
     const money = [
       `total receipts ${usd(row.TTL_RECEIPTS)}`,
@@ -200,6 +222,7 @@ function candidateResult(row: CandidateRow): ToolResult {
       ref: { kind: "fec", table: "fec_committee", id: row.CAND_PCC },
     });
   }
+
   return {
     title: `${row.CAND_NAME}, ${office}${seat ? ` ${seat}` : ""} (${row.CAND_ID})`,
     source: `https://www.fec.gov/data/candidate/${row.CAND_ID}/`,
@@ -238,9 +261,18 @@ function searchCommittees(conn: DatabaseSync, input: Record<string, unknown>): T
   const words = nameWords(text(input.name));
   const where: string[] = [];
   const params: string[] = [];
-  if (id) (where.push("m.CMTE_ID = ?"), params.push(id));
-  for (const word of words) (where.push("m.CMTE_NM LIKE ?"), params.push(`%${word}%`));
-  if (!where.length) throw new Error("give a committee name or ID");
+  if (id) {
+    where.push("m.CMTE_ID = ?");
+    params.push(id);
+  }
+  for (const word of words) {
+    where.push("m.CMTE_NM LIKE ?");
+    params.push(`%${word}%`);
+  }
+  if (!where.length) {
+    throw new Error("give a committee name or ID");
+  }
+
   const rows = conn
     .prepare(
       `SELECT m.CMTE_ID, m.CMTE_NM, m.CMTE_TP, m.CMTE_DSGN, m.CMTE_PTY_AFFILIATION, m.CONNECTED_ORG_NM, m.CAND_ID,
@@ -249,6 +281,7 @@ function searchCommittees(conn: DatabaseSync, input: Record<string, unknown>): T
        WHERE ${where.join(" AND ")} ORDER BY p.TTL_RECEIPTS DESC NULLS LAST LIMIT 200`,
     )
     .all(...params) as unknown as CommitteeRow[];
+
   return rows
     .filter((row) => nameMatches(row.CMTE_NM, words))
     .slice(0, 10)

@@ -21,7 +21,10 @@ export function readOnlyDatabase(): DatabaseSync {
 
 export function connect({ readOnly = false } = {}): DatabaseSync {
   const file = databasePath();
-  if (!readOnly) fs.mkdirSync(path.dirname(file), { recursive: true });
+  if (!readOnly) {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+  }
+
   const db = new DatabaseSync(file, { allowExtension: true, readOnly });
   db.exec("PRAGMA foreign_keys = ON");
   sqliteVec.load(db);

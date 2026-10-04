@@ -59,7 +59,10 @@ let client: Anthropic | undefined;
 
 function getClient(): Anthropic {
   const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
-  if (!apiKey) throw new MissingKeyError();
+  if (!apiKey) {
+    throw new MissingKeyError();
+  }
+
   client ??= new Anthropic({ apiKey });
   return client;
 }
@@ -73,6 +76,7 @@ function usageOf(response: Anthropic.Message): AnswerUsage {
     cache_read_input_tokens: response.usage.cache_read_input_tokens ?? 0,
     cache_creation_input_tokens: response.usage.cache_creation_input_tokens ?? 0,
   };
+
   return { ...counts, cost_usd: callCost(counts) };
 }
 
@@ -83,7 +87,10 @@ const POLLSTERS: Record<string, string> = { pew: "Pew Research Center", marist: 
 function passageResult(passage: Passage): ToolResult {
   const ref = { kind: "passage" as const, passage_id: passage.passage_id, document_url: passage.document_url };
   const blocks = [{ text: passage.text, ref }];
-  if (passage.surveys.length) blocks.push({ text: `Survey details: ${passage.surveys.join(". ")}.`, ref });
+  if (passage.surveys.length) {
+    blocks.push({ text: `Survey details: ${passage.surveys.join(". ")}.`, ref });
+  }
+
   const pollster = POLLSTERS[passage.source] ?? passage.source;
   return {
     title: `${passage.title} (${pollster}${passage.published_on ? `, published ${passage.published_on}` : ""})`,
@@ -108,6 +115,7 @@ function searchResultBlock(result: ToolResult): Anthropic.SearchResultBlockParam
 
 export async function answer(question: string): Promise<Answer> {
   const passages = await searchPassages(question, TOP_K);
+
   // Every search_result block in the conversation, in the order Claude sees
   // them, since a citation names its result by that position.
   const results: ToolResult[] = passages.map(passageResult);
@@ -116,6 +124,7 @@ export async function answer(question: string): Promise<Answer> {
   const scores = new Map<ToolResult, number>(
     results.map((result, index) => [result, 1 - passages[index].distance ** 2 / 2]),
   );
+
   const toolCalls: ToolCall[] = [];
   const usage: AnswerUsage[] = [];
   const messages: Anthropic.MessageParam[] = [
@@ -136,7 +145,9 @@ export async function answer(question: string): Promise<Answer> {
       messages,
     });
     usage.push(usageOf(response));
-    if (response.stop_reason !== "tool_use") break;
+    if (response.stop_reason !== "tool_use") {
+      break;
+    }
 
     const decline = response.content.find(
       (block): block is Anthropic.ToolUseBlock => block.type === "tool_use" && block.name === "decline",
@@ -151,7 +162,10 @@ export async function answer(question: string): Promise<Answer> {
     messages.push({ role: "assistant", content: response.content });
     const toolResults: Anthropic.ToolResultBlockParam[] = [];
     for (const block of response.content) {
-      if (block.type !== "tool_use") continue;
+      if (block.type !== "tool_use") {
+        continue;
+      }
+
       const input = (block.input ?? {}) as Record<string, unknown>;
       try {
         const found = runFecTool(readOnlyDatabase(), block.name, input);
@@ -170,20 +184,32 @@ export async function answer(question: string): Promise<Answer> {
     }
     messages.push({ role: "user", content: toolResults });
   }
-  if (!response) throw new Error("no response");
+
+  if (!response) {
+    throw new Error("no response");
+  }
 
   // With citations on, the reply comes back as several text blocks that
   // together make one answer, each cited block carrying its sources.
   const citations: Citation[] = [];
   let text = "";
   for (const block of response.content) {
-    if (block.type !== "text") continue;
+    if (block.type !== "text") {
+      continue;
+    }
+
     text += block.text;
     for (const citation of block.citations ?? []) {
-      if (citation.type !== "search_result_location") continue;
+      if (citation.type !== "search_result_location") {
+        continue;
+      }
+
       const result = results[citation.search_result_index];
       const cited = result?.blocks[citation.start_block_index];
-      if (!cited) continue;
+      if (!cited) {
+        continue;
+      }
+
       citations.push({
         claim: block.text.trim(),
         source: cited.ref,
@@ -207,7 +233,10 @@ export async function answer(question: string): Promise<Answer> {
 
 // "FEC candidate summary · S6IA00314" for an FEC record.
 function labelFor(ref: SourceRef): string {
-  if (ref.kind === "passage") return "Survey report";
+  if (ref.kind === "passage") {
+    return "Survey report";
+  }
+
   return `FEC ${ref.table.replace(/^fec_/, "").replaceAll("_", " ")} · ${ref.id}`;
 }
 
@@ -217,8 +246,12 @@ function retrievedItems(result: ToolResult, score: number | null): RetrievedItem
   const items: RetrievedItem[] = [];
   for (const block of result.blocks) {
     const same = items.find((item) => JSON.stringify(item.source) === JSON.stringify(block.ref));
-    if (same) same.text += `\n\n${block.text}`;
-    else items.push({ source: block.ref, score, text: block.text });
+    if (same) {
+      same.text += `\n\n${block.text}`;
+    } else {
+      items.push({ source: block.ref, score, text: block.text });
+    }
   }
+
   return items;
 }

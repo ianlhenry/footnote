@@ -28,13 +28,19 @@ export function findNumbers(text: string): FoundNumber[] {
     let value = Number(digits.replaceAll(",", "") + (fraction ?? ""));
     const unit = suffix?.toLowerCase();
     const percent = unit === "%" || unit === "percent";
-    if (unit && unit in SCALES) value *= SCALES[unit];
+    if (unit && unit in SCALES) {
+      value *= SCALES[unit];
+    }
     found.push({ value, percent, text: whole.trim() });
   }
+
   for (const match of text.matchAll(/\b([a-z]+)\b/gi)) {
     const value = WORDS[match[1].toLowerCase()];
-    if (value !== undefined) found.push({ value, percent: false, text: match[1] });
+    if (value !== undefined) {
+      found.push({ value, percent: false, text: match[1] });
+    }
   }
+
   return found;
 }
 

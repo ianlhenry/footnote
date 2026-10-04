@@ -19,7 +19,10 @@ export interface TokenCounts {
 // a wrong number.
 export function callCost(usage: TokenCounts): number | null {
   const price = PRICES[usage.model];
-  if (!price) return null;
+  if (!price) {
+    return null;
+  }
+
   return (
     (usage.input_tokens * price.input +
       (usage.cache_creation_input_tokens ?? 0) * price.input * 1.25 +

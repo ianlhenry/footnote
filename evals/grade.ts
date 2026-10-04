@@ -81,20 +81,25 @@ export async function grade(item: Case, row: AnswerRow, features: RunFeatures, j
 
   const values = item.facts.flatMap((fact) => fact.values ?? []);
   const missingValues = values.filter((value) => !stated(value, answer.text));
-  if (missingValues.length) details.missing_values = missingValues.map((value) => `${value.n} (${value.kind})`);
+  if (missingValues.length) {
+    details.missing_values = missingValues.map((value) => `${value.n} (${value.kind})`);
+  }
 
   let retrieval: number | null = null;
   if (answerCase && features.retrieval && item.sources.length) {
     const missing = item.sources.filter(
       (expected) => !answer.retrieved.some((retrieved) => sameSource(expected, retrieved.source)),
     );
-    if (missing.length) details.missing_sources = missing.map(describe);
+    if (missing.length) {
+      details.missing_sources = missing.map(describe);
+    }
     retrieval = (item.sources.length - missing.length) / item.sources.length;
   }
 
   let citationCoverage: number | null = null;
   let quoteFidelity: number | null = null;
   let citationSupport: number | null = null;
+
   if (features.citations && answer.status === "answered") {
     const claims = answer.citations.map((citation) => citation.claim).join("\n");
     const figures = findFigures(answer.text);
@@ -102,13 +107,16 @@ export async function grade(item: Case, row: AnswerRow, features: RunFeatures, j
       const uncovered = figures.filter(
         (figure) => !findNumbers(claims).some((claimed) => claimed.value === figure.value),
       );
-      if (uncovered.length) details.uncovered_numbers = uncovered.map((figure) => figure.text);
+      if (uncovered.length) {
+        details.uncovered_numbers = uncovered.map((figure) => figure.text);
+      }
       citationCoverage = (figures.length - uncovered.length) / figures.length;
     }
 
     const passageCitations = answer.citations
       .map((citation, index) => ({ citation, index }))
       .filter(({ citation }) => citation.source.kind === "passage");
+
     if (passageCitations.length) {
       const unfaithful = passageCitations.filter(({ citation }) => {
         const source = citation.source as Extract<SourceRef, { kind: "passage" }>;
@@ -117,7 +125,9 @@ export async function grade(item: Case, row: AnswerRow, features: RunFeatures, j
         );
         return !passage || !normalize(passage.text).includes(normalize(citation.quote));
       });
-      if (unfaithful.length) details.unfaithful_quotes = unfaithful.map(({ index }) => index);
+      if (unfaithful.length) {
+        details.unfaithful_quotes = unfaithful.map(({ index }) => index);
+      }
       quoteFidelity = (passageCitations.length - unfaithful.length) / passageCitations.length;
     }
 
@@ -156,6 +166,7 @@ function sameSource(expected: ExpectedSource, actual: SourceRef): boolean {
   if (expected.kind === "document") {
     return actual.kind === "passage" && trimSlash(actual.document_url) === trimSlash(expected.url);
   }
+
   return actual.kind === "fec" && actual.table === expected.table && actual.id === expected.id;
 }
 

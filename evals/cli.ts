@@ -17,7 +17,9 @@ const RESULTS_PATH = process.env.EVAL_RUNS_DIR
   ? path.join(process.env.EVAL_RUNS_DIR, "results.md")
   : path.join(ROOT, "evals", "results.md");
 const ENV_FILE = path.join(ROOT, ".env");
-if (fs.existsSync(ENV_FILE)) process.loadEnvFile(ENV_FILE);
+if (fs.existsSync(ENV_FILE)) {
+  process.loadEnvFile(ENV_FILE);
+}
 
 const DEFAULT_URL = "http://127.0.0.1:8000";
 const DEFAULT_JUDGE: JudgeConfig = { model: "claude-sonnet-5-5", effort: "medium" };
@@ -93,7 +95,9 @@ async function main() {
     },
   });
   const [command, target] = positionals;
-  if (values.help || !command) return console.log(USAGE);
+  if (values.help || !command) {
+    return console.log(USAGE);
+  }
 
   const judgeConfig = JudgeConfigSchema.parse({ model: values["judge-model"], effort: values["judge-effort"] });
   const options = {
@@ -111,7 +115,9 @@ async function main() {
       writeSummary(RUNS_DIR, RESULTS_PATH);
       return console.log("Wrote evals/results.md.");
     case "grade": {
-      if (!target) fail("grade needs a run id or directory");
+      if (!target) {
+        fail("grade needs a run id or directory");
+      }
       return gradeRun(resolveRun(target), judgeConfig, values.yes, options.concurrency);
     }
     case "run": {
@@ -121,10 +127,14 @@ async function main() {
         fail("run calls Claude through /api/chat and the judge. Re-run with --yes to spend.");
       }
       const note = values.note?.trim();
-      if (!note && !values.resume) fail("run needs --note describing what changed");
+      if (!note && !values.resume) {
+        fail("run needs --note describing what changed");
+      }
       const dir = values.resume ? resolveRun(values.resume) : newRunDir(note!);
       await askAll(dir, cases, { ...options, url: values.url, note: note ?? "" });
-      if (!values["no-judge"]) await gradeRun(dir, judgeConfig, true, options.concurrency);
+      if (!values["no-judge"]) {
+        await gradeRun(dir, judgeConfig, true, options.concurrency);
+      }
       return;
     }
     default:
@@ -139,24 +149,35 @@ function selectCases(only: string | undefined, verifiedOnly: boolean): Case[] {
   if (only) {
     const ids = new Set(only.split(",").map((id) => id.trim()));
     const unknown = [...ids].filter((id) => !cases.some((item) => item.id === id));
-    if (unknown.length) fail(`unknown case ids: ${unknown.join(", ")}`);
+    if (unknown.length) {
+      fail(`unknown case ids: ${unknown.join(", ")}`);
+    }
     cases = cases.filter((item) => ids.has(item.id));
   }
-  if (verifiedOnly) cases = cases.filter((item) => item.verified);
-  if (!cases.length) fail("no cases selected");
+  if (verifiedOnly) {
+    cases = cases.filter((item) => item.verified);
+  }
+
+  if (!cases.length) {
+    fail("no cases selected");
+  }
   return cases;
 }
 
 async function plan(cases: Case[], reps: number, judgeConfig: JudgeConfig) {
   const verified = cases.filter((item) => item.verified).length;
   const byCategory = new Map<string, number>();
-  for (const item of cases) byCategory.set(item.tags[0], (byCategory.get(item.tags[0]) ?? 0) + 1);
+  for (const item of cases) {
+    byCategory.set(item.tags[0], (byCategory.get(item.tags[0]) ?? 0) + 1);
+  }
+
   console.log(`cases.json is valid: ${cases.length} cases selected, ${verified} verified.`);
   console.log(`  ${[...byCategory].map(([name, count]) => `${name} ${count}`).join(", ")}`);
   console.log(`  expect answer ${cases.filter((c) => c.expect === "answer").length}, refuse ${cases.filter((c) => c.expect === "refuse").length}`);
   console.log(`\nA run would make:`);
   console.log(`  ${cases.length * reps} requests to /api/chat (${cases.length} cases × ${reps} reps). Each makes as many Claude calls as the agent does; today that is 1.`);
   console.log(`  up to ${cases.length * reps} judge calls on ${judgeConfig.model} (effort ${judgeConfig.effort}) to grade facts, plus 1 per answer that has citations.`);
+
   const estimate = measuredCost();
   if (estimate) {
     console.log(`\nLast graded run (${estimate.run}) cost $${estimate.perAnswer.toFixed(4)} per answer, judge included.`);
@@ -167,19 +188,29 @@ async function plan(cases: Case[], reps: number, judgeConfig: JudgeConfig) {
 }
 
 function measuredCost(): { run: string; perAnswer: number } | null {
-  if (!fs.existsSync(RUNS_DIR)) return null;
+  if (!fs.existsSync(RUNS_DIR)) {
+    return null;
+  }
+
   const runs = fs.readdirSync(RUNS_DIR).filter((name) => fs.existsSync(path.join(RUNS_DIR, name, "grades.jsonl"))).sort();
   const last = runs.at(-1);
-  if (!last) return null;
+  if (!last) {
+    return null;
+  }
+
   const answers = readJsonl<AnswerRow>(path.join(RUNS_DIR, last, "answers.jsonl"));
   const grades = readJsonl<GradeRow>(path.join(RUNS_DIR, last, "grades.jsonl"));
-  if (!answers.length) return null;
+  if (!answers.length) {
+    return null;
+  }
+
   const total = answers.reduce((sum, row) => sum + agentCost(row), 0) + grades.reduce((sum, row) => sum + judgeCost(row, true), 0);
   return { run: last, perAnswer: total / answers.length };
 }
 
 async function askAll(dir: string, cases: Case[], options: { reps: number; concurrency: number; timeoutS: number; url: string; note: string }) {
   await preflight(options.url);
+
   fs.mkdirSync(dir, { recursive: true });
   const infoPath = path.join(dir, "run.json");
   const resumed = fs.existsSync(infoPath);
@@ -219,6 +250,7 @@ async function askAll(dir: string, cases: Case[], options: { reps: number; concu
 
   let next = 0;
   let failed = 0;
+
   async function worker() {
     while (next < tasks.length) {
       const { item, rep } = tasks[next++];
@@ -240,6 +272,7 @@ async function askAll(dir: string, cases: Case[], options: { reps: number; concu
       }
     }
   }
+
   await Promise.all(Array.from({ length: options.concurrency }, worker));
 
   const answers = readJsonl<AnswerRow>(answersPath);
@@ -248,8 +281,11 @@ async function askAll(dir: string, cases: Case[], options: { reps: number; concu
   info.agent_models = [...new Set(answers.flatMap((row) => row.answer.usage.map((usage) => usage.model)))].sort();
   info.finished_at = new Date().toISOString();
   writeJson(infoPath, info);
+
   console.log(`${info.id}: ${answers.length} answers stored, ${failed} failed this pass.`);
-  if (info.agent_models.length > 1) console.warn(`  Answers came from more than one model: ${info.agent_models.join(", ")}.`);
+  if (info.agent_models.length > 1) {
+    console.warn(`  Answers came from more than one model: ${info.agent_models.join(", ")}.`);
+  }
 }
 
 class AskError extends Error {
@@ -271,7 +307,9 @@ async function preflight(url: string) {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ content: "" }),
     });
-    if (response.status !== 400) fail(`${url}/api/chat answered ${response.status} to an empty question; expected 400.`);
+    if (response.status !== 400) {
+      fail(`${url}/api/chat answered ${response.status} to an empty question; expected 400.`);
+    }
   } catch (error) {
     fail(`cannot reach ${url}. Start the API with \`npm run dev:api\`. (${error})`);
   }
@@ -280,6 +318,7 @@ async function preflight(url: string) {
 async function askOne(url: string, question: string, timeoutS: number) {
   const deadline = Date.now() + timeoutS * 1000;
   let retries = 0;
+
   for (let attempt = 0; ; attempt++) {
     const started = Date.now();
     let response: Response;
@@ -291,7 +330,9 @@ async function askOne(url: string, question: string, timeoutS: number) {
         signal: AbortSignal.timeout(Math.max(1, deadline - Date.now())),
       });
     } catch (error) {
-      if (Date.now() >= deadline) throw new AskError("timeout", `no answer within ${timeoutS}s`, retries);
+      if (Date.now() >= deadline) {
+        throw new AskError("timeout", `no answer within ${timeoutS}s`, retries);
+      }
       if (attempt < 3) {
         retries++;
         await backoff(attempt, deadline);
@@ -299,6 +340,7 @@ async function askOne(url: string, question: string, timeoutS: number) {
       }
       throw new AskError("network", String(error), retries);
     }
+
     const latency_s = (Date.now() - started) / 1000;
     const body = await response.json().catch(() => null);
     // The API answers 502 when the Anthropic call failed and 500 on a crash;
@@ -308,11 +350,17 @@ async function askOne(url: string, question: string, timeoutS: number) {
       await backoff(attempt, deadline);
       continue;
     }
-    if (!response.ok) throw new AskError("http", `HTTP ${response.status}: ${JSON.stringify(body)}`, retries);
+    if (!response.ok) {
+      throw new AskError("http", `HTTP ${response.status}: ${JSON.stringify(body)}`, retries);
+    }
+
     const parsed = ChatResponse.safeParse(body);
     const last = parsed.success ? parsed.data.messages.at(-1) : undefined;
     const answer = AnswerSchema.safeParse(last);
-    if (!answer.success) throw new AskError("contract", `response does not match api/contract.ts: ${answer.error.message}`, retries);
+    if (!answer.success) {
+      throw new AskError("contract", `response does not match api/contract.ts: ${answer.error.message}`, retries);
+    }
+
     const { content, ...rest } = answer.data;
     return { answer: { text: content, ...rest }, latency_s, retries };
   }
@@ -320,7 +368,10 @@ async function askOne(url: string, question: string, timeoutS: number) {
 
 async function backoff(attempt: number, deadline: number) {
   const delay = Math.min(30_000, 1000 * 2 ** attempt) * (0.5 + Math.random());
-  if (Date.now() + delay >= deadline) throw new AskError("timeout", "no time left to retry", attempt);
+  if (Date.now() + delay >= deadline) {
+    throw new AskError("timeout", "no time left to retry", attempt);
+  }
+
   await new Promise((resolve) => setTimeout(resolve, delay));
 }
 
@@ -330,7 +381,9 @@ async function gradeRun(dir: string, judgeConfig: JudgeConfig, allowSpend: boole
   const answers = readJsonl<AnswerRow>(path.join(dir, "answers.jsonl"));
   const features = runFeatures(answers);
   const orphans = answers.filter((row) => !cases.has(row.case_id));
-  if (orphans.length) console.warn(`  ${orphans.length} answers belong to cases no longer in cases.json; skipping them.`);
+  if (orphans.length) {
+    console.warn(`  ${orphans.length} answers belong to cases no longer in cases.json; skipping them.`);
+  }
   const rows = answers.filter((row) => cases.has(row.case_id));
 
   // Count what the cache cannot answer before spending anything.
@@ -340,10 +393,13 @@ async function gradeRun(dir: string, judgeConfig: JudgeConfig, allowSpend: boole
     try {
       await grade(cases.get(row.case_id)!, row, features, offline);
     } catch (error) {
-      if (!(error instanceof JudgeMiss)) throw error;
+      if (!(error instanceof JudgeMiss)) {
+        throw error;
+      }
       misses++;
     }
   }
+
   if (misses && !allowSpend) {
     fail(`${misses} of ${rows.length} answers need judge calls on ${judgeConfig.model}. Re-run with --yes to spend.`);
   }
@@ -352,6 +408,7 @@ async function gradeRun(dir: string, judgeConfig: JudgeConfig, allowSpend: boole
   const graded: GradeRow[] = new Array(rows.length);
   const failures: string[] = [];
   let next = 0;
+
   async function worker() {
     while (next < rows.length) {
       const index = next++;
@@ -363,8 +420,11 @@ async function gradeRun(dir: string, judgeConfig: JudgeConfig, allowSpend: boole
       }
     }
   }
+
   await Promise.all(Array.from({ length: concurrency }, worker));
-  for (const failure of failures) console.error(`  grading failed: ${failure}`);
+  for (const failure of failures) {
+    console.error(`  grading failed: ${failure}`);
+  }
 
   // Grades are derived, so each grading pass replaces the file.
   const lines = graded.filter(Boolean).map((row) => JSON.stringify(row));
@@ -373,8 +433,11 @@ async function gradeRun(dir: string, judgeConfig: JudgeConfig, allowSpend: boole
   writeJson(path.join(dir, "run.json"), info);
   writeReport(dir);
   writeSummary(RUNS_DIR, RESULTS_PATH);
+
   console.log(`${info.id}: graded ${lines.length} answers${failures.length ? `, ${failures.length} failed` : ""}. See ${path.relative(ROOT, path.join(dir, "report.md"))}.`);
-  if (failures.length) process.exitCode = 1;
+  if (failures.length) {
+    process.exitCode = 1;
+  }
 }
 
 function review() {
@@ -384,6 +447,7 @@ function review() {
     const ticks = "`".repeat(longest + 1);
     return `${ticks}\n${text}\n${ticks}`;
   };
+
   const lines = [
     "# Eval cases",
     "",
@@ -396,6 +460,7 @@ function review() {
     ...cases.map((item) => `| [${item.id}](#${item.id}) | ${item.tags[0]} | ${item.expect} | ${item.verified ? "yes" : "no"} | ${item.facts.length} | ${item.sources.length} |`),
     "",
   ];
+
   for (const item of cases) {
     lines.push(`## ${item.id}`, "", fence(item.question), "");
     lines.push(`Tags: ${item.tags.join(", ")}. Expect: **${item.expect}**. Verified: ${item.verified ? "yes" : "**no**"}.`, "");
@@ -407,12 +472,15 @@ function review() {
       }
       lines.push("");
     }
-    if (item.must_not.length) lines.push("Must not:", "", ...item.must_not.map((rule) => `- ${rule}`), "");
+    if (item.must_not.length) {
+      lines.push("Must not:", "", ...item.must_not.map((rule) => `- ${rule}`), "");
+    }
     if (item.sources.length) {
       lines.push("Sources:", "", ...item.sources.map((source) => `- ${source.kind === "document" ? source.url : `${source.table} \`${source.id}\``}`), "");
     }
     lines.push(`Provenance: ${item.provenance}`, "");
   }
+
   fs.writeFileSync(path.join(ROOT, "evals", "cases.md"), lines.join("\n"));
   console.log(`Wrote evals/cases.md (${cases.length} cases).`);
 }
@@ -423,15 +491,21 @@ function newRunDir(note: string): string {
   const words = note.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
   let slug = "";
   for (const word of words) {
-    if (slug && slug.length + word.length + 1 > 40) break;
+    if (slug && slug.length + word.length + 1 > 40) {
+      break;
+    }
     slug = slug ? `${slug}-${word}` : word.slice(0, 40);
   }
+
   return path.join(RUNS_DIR, slug ? `${stamp}-${slug}` : stamp);
 }
 
 function resolveRun(target: string): string {
   const dir = fs.existsSync(path.join(RUNS_DIR, target)) ? path.join(RUNS_DIR, target) : path.resolve(target);
-  if (!fs.existsSync(path.join(dir, "run.json"))) fail(`no run at ${target}`);
+  if (!fs.existsSync(path.join(dir, "run.json"))) {
+    fail(`no run at ${target}`);
+  }
+
   return dir;
 }
 
@@ -448,6 +522,7 @@ function apiSha(): string {
   for (const name of fs.readdirSync(dir).filter((name) => name.endsWith(".ts")).sort()) {
     hash.update(name).update("\0").update(fs.readFileSync(path.join(dir, name))).update("\0");
   }
+
   return hash.digest("hex").slice(0, 12);
 }
 
@@ -457,7 +532,10 @@ function corpusState(): RunInfo["corpus"] {
   const file = process.env.DATABASE_PATH
     ? path.resolve(ROOT, process.env.DATABASE_PATH)
     : path.join(ROOT, "data", "papertrail.sqlite");
-  if (!fs.existsSync(file)) return null;
+  if (!fs.existsSync(file)) {
+    return null;
+  }
+
   const db = new DatabaseSync(file, { readOnly: true });
   try {
     const count = (table: string) => Number((db.prepare(`SELECT count(*) AS n FROM ${table}`).get() as { n: number }).n);
@@ -479,7 +557,10 @@ function sha(data: Buffer): string {
 
 function positiveInt(value: string, flag: string): number {
   const number = Number(value);
-  if (!Number.isInteger(number) || number < 1) fail(`${flag} must be a positive whole number`);
+  if (!Number.isInteger(number) || number < 1) {
+    fail(`${flag} must be a positive whole number`);
+  }
+
   return number;
 }
 

@@ -90,7 +90,9 @@ test("an answer that states every fact scores full marks", async () => {
   for (const [index, item] of answerCases.entries()) {
     const graded = await grade(item, rows[index], features, stubJudge);
     assert.equal(graded.metrics.facts, 1, item.id);
-    if (graded.metrics.numbers !== null) assert.equal(graded.metrics.numbers, 1, item.id);
+    if (graded.metrics.numbers !== null) {
+      assert.equal(graded.metrics.numbers, 1, item.id);
+    }
     assert.equal(graded.metrics.refusal, 1, item.id);
     assert.equal(graded.metrics.retrieval, null, "no retrieval in the run means not applicable");
     assert.equal(graded.metrics.citation_support, null);
@@ -102,7 +104,9 @@ test("an empty or evasive answer scores zero on facts and figures", async () => 
     for (const item of cases.filter((c) => c.expect === "answer")) {
       const graded = await grade(item, answerRow(item, { text }), { retrieval: false, citations: false }, stubJudge);
       assert.equal(graded.metrics.facts, 0, item.id);
-      if (graded.metrics.numbers !== null) assert.equal(graded.metrics.numbers, 0, item.id);
+      if (graded.metrics.numbers !== null) {
+        assert.equal(graded.metrics.numbers, 0, item.id);
+      }
     }
   }
 });
@@ -167,8 +171,13 @@ test("the runner stores answers, and records failures without scoring them", asy
     request.on("end", () => {
       const { content } = JSON.parse(body);
       response.setHeader("content-type", "application/json");
-      if (!content) return response.writeHead(400).end(JSON.stringify({ detail: "content is required" }));
-      if (content === down.question) return response.writeHead(503).end(JSON.stringify({ detail: "ANTHROPIC_API_KEY is not set" }));
+      if (!content) {
+        return response.writeHead(400).end(JSON.stringify({ detail: "content is required" }));
+      }
+      if (content === down.question) {
+        return response.writeHead(503).end(JSON.stringify({ detail: "ANTHROPIC_API_KEY is not set" }));
+      }
+
       const assistant =
         content === broken.question
           ? { id: 2, role: "assistant", content: "missing fields" }
