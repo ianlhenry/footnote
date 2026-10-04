@@ -1,13 +1,14 @@
 """Shared tables for poll articles.
 
-documents is one page from a source such as Pew or, later, Marist.
+documents is one page from a source such as Pew or Marist.
 passages are the chunks of that page, in order.
 passage_embeddings holds one Voyage vector per passage, and the model name
 that produced it.
 surveys is one poll fielding, keyed by its pollster, geography, and field
 dates. geography is "US", a state's postal code such as "TX", or "INTL".
 Its metadata_source says where the values were read: the main source, then
-any field that came from elsewhere, as in "page; methodology for margin_of_error".
+any field that came from elsewhere, as in "page; methodology for margin_of_error"
+for Pew or "pdf; page for sample_size, margin_of_error" for Marist.
 document_surveys links a page to every survey it reports on. A page can cite
 several surveys, and one survey is usually spread over several pages.
 
