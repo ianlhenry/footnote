@@ -4,7 +4,10 @@ documents is one page from a source such as Pew or, later, Marist.
 passages are the chunks of that page, in order.
 passage_embeddings holds one Voyage vector per passage, and the model name
 that produced it.
-surveys is one poll fielding, keyed by its field dates and sample size.
+surveys is one poll fielding, keyed by its pollster, geography, and field
+dates. geography is "US", a state's postal code such as "TX", or "INTL".
+Its metadata_source says where the values were read: the main source, then
+any field that came from elsewhere, as in "page; methodology for margin_of_error".
 document_surveys links a page to every survey it reports on. A page can cite
 several surveys, and one survey is usually spread over several pages.
 
@@ -39,14 +42,20 @@ COLUMNS = {
         "id",
         "source",
         "survey_key",
+        "geography",
         "field_start",
         "field_end",
         "sample_size",
         "population",
         "margin_of_error",
+        "metadata_source",
     },
     "document_surveys": {"document_id", "survey_id"},
 }
+# Nullable columns added after their table was first created. ensure_schema
+# adds them in place, because a rebuild would have to embed every passage again.
+ADDED_COLUMNS = {"surveys": {"geography": "TEXT", "metadata_source": "TEXT"}}
+GEOGRAPHY_INDEX = "CREATE INDEX IF NOT EXISTS surveys_geography ON surveys (geography)"
 DOCUMENT_FIELDS = (
     "source",
     "title",
@@ -60,11 +69,13 @@ DOCUMENT_FIELDS = (
 SURVEY_FIELDS = (
     "source",
     "survey_key",
+    "geography",
     "field_start",
     "field_end",
     "sample_size",
     "population",
     "margin_of_error",
+    "metadata_source",
 )
 
 
@@ -81,20 +92,28 @@ def connect_corpus(readonly=False):
 
 
 def schema_ready(conn):
+    """Whether the tables can be read, possibly after ensure_schema adds ADDED_COLUMNS."""
     for table, expected in COLUMNS.items():
-        columns = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
-        if columns != expected:
+        columns = _columns(conn, table)
+        if not columns <= expected or not expected - columns <= set(ADDED_COLUMNS.get(table, {})):
             return False
     return True
 
 
 def ensure_schema(conn):
-    """Recreate the corpus tables when their columns do not match.
+    """Add missing ADDED_COLUMNS, or recreate the corpus tables when their columns do not match.
 
-    Everything in them comes from the page cache and Voyage, so an old layout
-    is dropped and loaded again rather than migrated.
+    Everything in them comes from the page cache and Voyage, so any other old
+    layout is dropped and loaded again rather than migrated.
     """
     if schema_ready(conn):
+        with conn:
+            for table, added in ADDED_COLUMNS.items():
+                columns = _columns(conn, table)
+                for column, kind in added.items():
+                    if column not in columns:
+                        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {kind}")
+            conn.execute(GEOGRAPHY_INDEX)
         return
     with conn:
         for table in TABLES:
@@ -142,14 +161,17 @@ def ensure_schema(conn):
                 id INTEGER PRIMARY KEY,
                 source TEXT NOT NULL,
                 survey_key TEXT NOT NULL UNIQUE,
+                geography TEXT,
                 field_start TEXT NOT NULL,
                 field_end TEXT NOT NULL,
                 sample_size INTEGER,
                 population TEXT,
-                margin_of_error REAL
+                margin_of_error REAL,
+                metadata_source TEXT
             )
             """
         )
+        conn.execute(GEOGRAPHY_INDEX)
         conn.execute(
             """
             CREATE TABLE document_surveys (
@@ -187,13 +209,19 @@ def document_state(conn, source):
 
 
 def stored_surveys(conn, source):
-    columns = ", ".join(SURVEY_FIELDS)
+    """This source's surveys. A column not added yet reads as None."""
+    present = _columns(conn, "surveys")
+    columns = ", ".join(field if field in present else "NULL" for field in SURVEY_FIELDS)
     return [
         dict(zip(SURVEY_FIELDS, row))
         for row in conn.execute(
             f"SELECT {columns} FROM surveys WHERE source = ?", (source,)
         )
     ]
+
+
+def _columns(conn, table):
+    return {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
 
 
 def replace_document(conn, document, passages, vectors, surveys):

@@ -11,11 +11,23 @@ its title, data table, note, and source.
 
 import bisect
 import re
+import urllib.parse
 from collections import Counter
 
 from lxml import html
 
-from server.ingest.articles import MONTH, clean, ingest_articles, iso_date, month_number
+from server.ingest.articles import (
+    MONTH,
+    SOURCED_FIELDS,
+    clean,
+    describe_sources,
+    ingest_articles,
+    is_pdf,
+    iso_date,
+    month_number,
+    pdf_text,
+    read_sources,
+)
 
 CHART_MAX_CHARS = 1600
 
@@ -80,8 +92,18 @@ SAMPLE = re.compile(
     rf"\b(?:surveyed|survey of|among|interviewed)\s+([\d,]{{3,}})\s+{POPULATION}",
     re.IGNORECASE,
 )
-# "a Pew Research Center survey of U.S. adults conducted Oct. 6-16".
-POPULATION_ONLY = re.compile(rf"\bsurvey of\s+{POPULATION}\b", re.IGNORECASE)
+# "a Pew Research Center survey of U.S. adults conducted Oct. 6-16",
+# "panel of randomly selected U.S. adults".
+POPULATION_ONLY = re.compile(
+    rf"\b(?:survey of|randomly selected)\s+{POPULATION}\b", re.IGNORECASE
+)
+# Methodology pages: "A total of 3,554 panelists responded",
+# "the full sample of 3,554 respondents".
+RESPONDED = re.compile(
+    r"\b(?:a total of\s+([\d,]{3,})\s+panelists responded"
+    r"|full sample of\s+([\d,]{3,})\s+respondents)",
+    re.IGNORECASE,
+)
 SAMPLE_REACH = 600
 # Only full-sample margins. Pew articles also quote subgroup margins, such as
 # "plus or minus 10.1 percentage points" for Asian Republicans.
@@ -94,6 +116,8 @@ FULL_SAMPLE_MARGIN = re.compile(
     re.IGNORECASE,
 )
 MARGIN_REACH = 1500
+# Pages about Pew's methods in general rather than one survey.
+METHODS_HUB = re.compile(r"/topic/|/our-methods/|american-trends-panel", re.IGNORECASE)
 
 
 def ingest_pew(dry_run=False):
@@ -101,9 +125,75 @@ def ingest_pew(dry_run=False):
 
 
 def read_page(row, fetch):
-    blocks = read_article(fetch(row["url"]).decode("utf-8", "replace"))
+    page = fetch(row["url"]).decode("utf-8", "replace")
+    blocks = read_article(page)
     text = "\n".join(block["text"] for block in blocks)
-    return {"blocks": blocks, "surveys": find_surveys(text)}
+    surveys = find_surveys(text)
+    for url in methodology_links(page, row["url"]):
+        try:
+            _add_methodology(surveys, find_surveys(_methodology_text(fetch(url))))
+        except Exception as error:
+            print(f"Pew methodology skipped: {url}: {error}")
+    return {"blocks": blocks, "surveys": surveys}
+
+
+def methodology_links(page, page_url):
+    """Methodology pages and PDFs linked from the report's contents or the article body.
+
+    Other links on the page, such as an old methodology cited in a footnote,
+    describe something else.
+    """
+    tree = html.fromstring(page)
+    anchors = tree.xpath(
+        '//*[contains(@class, "table-of-contents")]//a[@href]'
+        ' | //*[contains(concat(" ", normalize-space(@class), " "), " wp-block-post-content ")]'
+        "//a[@href]"
+    )
+    here = urllib.parse.urldefrag(page_url)[0].rstrip("/")
+    links = []
+    for anchor in anchors:
+        url = urllib.parse.urldefrag(urllib.parse.urljoin(page_url, anchor.get("href")))[0]
+        parts = urllib.parse.urlparse(url)
+        if (
+            parts.netloc.endswith("pewresearch.org")
+            and "methodology" in parts.path.lower()
+            and not METHODS_HUB.search(parts.path)
+            and url.rstrip("/") != here
+            and url not in links
+        ):
+            links.append(url)
+    return links
+
+
+def _methodology_text(body):
+    if is_pdf(body):
+        return pdf_text(body)
+    return "\n".join(block["text"] for block in read_article(body.decode("utf-8", "replace")))
+
+
+def _add_methodology(surveys, found):
+    """Fill each survey from the methodology survey with the same field dates.
+
+    A methodology survey the article never dates is added, because the page
+    belongs to the report that methodology describes.
+    """
+    by_dates = {(survey["field_start"], survey["field_end"]): survey for survey in surveys}
+    for extra in found:
+        dates = (extra["field_start"], extra["field_end"])
+        survey = by_dates.get(dates)
+        if survey is None:
+            extra["metadata_source"] = "methodology"
+            surveys.append(extra)
+            by_dates[dates] = extra
+            continue
+        filled = [
+            field for field in SOURCED_FIELDS if survey[field] is None and extra[field] is not None
+        ]
+        main, sources = read_sources(survey["metadata_source"])
+        for field in filled:
+            survey[field] = extra[field]
+            sources[field] = "methodology"
+        survey["metadata_source"] = describe_sources(main, sources)
 
 
 def read_article(page):
@@ -303,6 +393,11 @@ def find_surveys(text):
         if target is not None:
             size = int(match.group(1).replace(",", ""))
             found[target]["sizes"].append((size, clean(match.group(2))))
+    for match in RESPONDED.finditer(text):
+        target = _nearest(ranges, match, line_starts, SAMPLE_REACH)
+        if target is not None:
+            size = int((match.group(1) or match.group(2)).replace(",", ""))
+            found[target]["sizes"].append((size, None))
     for match in POPULATION_ONLY.finditer(text):
         target = _nearest(ranges, match, line_starts, SAMPLE_REACH)
         if target is not None:
@@ -322,17 +417,20 @@ def find_surveys(text):
         if facts["sizes"]:
             counts = Counter(size for size, _ in facts["sizes"])
             size = max(counts, key=lambda value: counts[value])
-            named = [name for value, name in facts["sizes"] if value == size]
-            population = _best_population(named)
+            named = [name for value, name in facts["sizes"] if value == size and name]
+            if named:
+                population = _best_population(named)
         if population is None and facts["populations"]:
             population = _best_population(facts["populations"])
         surveys.append(
             {
+                "geography": _geography(population),
                 "field_start": field_start,
                 "field_end": field_end,
                 "sample_size": size,
-                "population": population,
+                "population": _without_place(population),
                 "margin_of_error": facts["margins"][0] if facts["margins"] else None,
+                "metadata_source": "page",
             }
         )
     return surveys
@@ -377,6 +475,21 @@ def _nearest(ranges, match, line_starts, reach):
         if best is None or rank < best[0]:
             best = (rank, item["dates"])
     return best[1] if best else None
+
+
+def _geography(population):
+    """Pew's U.S. panel is sometimes just "adults". Only a multi-country survey names countries."""
+    if population is None:
+        return None
+    return "INTL" if "countries" in population.lower() else "US"
+
+
+def _without_place(population):
+    """'U.S. adults' gives 'adults'. 'people across 36 countries' gives 'people'."""
+    if population is None:
+        return None
+    population = re.sub(r"^U\.S\.\s+", "", population, flags=re.IGNORECASE)
+    return re.sub(r"\s+across\s+\d+\s+countries$", "", population, flags=re.IGNORECASE)
 
 
 def _best_population(names):

@@ -20,7 +20,7 @@ python3 -m venv .venv
 .venv/bin/python -m server.ingest
 ```
 
-`--dry-run` prints the FEC rows and Pew passages that would be written, including the text that would be embedded, the surveys found on each page, and any documents that would be deleted. It does not change the database or call Voyage. It does fetch Pew pages that are not cached yet and saves them to the cache.
+`--dry-run` prints the FEC rows and Pew passages that would be written, including the text that would be embedded, the surveys found on each page, and any documents that would be deleted. It does not change the database or call Voyage. It does fetch Pew pages, and the methodology pages and PDFs they link, that are not cached yet and saves them to the cache.
 
 ```sh
 .venv/bin/python -m server.ingest --dry-run
@@ -66,9 +66,13 @@ Pew reads `data/ingestion/pew/pew_manifest.csv`. Each article is fetched once an
 
 The loader keeps the article text and the charts, with each chart's data table, note, and source. Paragraphs under one heading are merged into passages of up to 800 characters. Each passage starts with the article title and its section heading. Passages are embedded with Voyage `voyage-4` and written to `documents`, `passages`, and `passage_embeddings`.
 
-Field dates, sample size, population, and margin of error are read from the text and written to `surveys`. `document_surveys` links each page to every survey it cites. A survey is keyed by its field dates and sample size. A chapter that omits the sample takes it from another page with the same field dates. Margin of error is often missing because most articles state it only for subgroups.
+Field dates, sample size, population, and margin of error are read from the text and written to `surveys`. `document_surveys` links each page to every survey it cites. A survey is keyed by its pollster, geography, and field dates, as in `pew-US-2026-07-06-2026-07-12`. Geography is `US`, a state's postal code, or `INTL` for a multi-country survey. A Pew population counts as `US` unless it names countries. The place is then dropped from `population`, which holds only who was surveyed, such as `adults` or `registered voters`. A page that omits the population takes the geography of another page with the same field dates, and values one page omits come from another page citing the same survey. Articles mostly state margins only for subgroups, so Pew also reads the methodology pages and PDFs an article links from its report's table of contents or its body, such as "How we did this". They are cached like the articles. A methodology survey with the same field dates fills in what the article left out, usually the full-sample margin of error. A methodology survey the article never dates is added to the page, because the page belongs to the report that methodology describes. A methodology page that cannot be read is skipped with a message, and the article still loads.
 
-Every run rewrites each page's metadata and survey links. A page is embedded again only when its passage text changes or its vectors came from another model. Documents no longer in the manifest are deleted. If the corpus tables have an older layout, they are dropped and loaded again.
+`surveys.metadata_source` records where the values were read: the main source first, then any field that came from elsewhere, as in `page; methodology for margin_of_error`. When several pages cite one survey, each value keeps the source of the page it was taken from.
+
+Every run, dry or not, ends with a check per source that lists each survey still missing a geography, sample size, population, or margin of error, with its `metadata_source`, and each page that cites no survey.
+
+Every run rewrites each page's metadata and survey links. A page is embedded again only when its passage text changes or its vectors came from another model. Documents no longer in the manifest are deleted. A nullable column added to a corpus table, such as `metadata_source`, is added in place. Any other change to the corpus tables' layout drops them and loads them again, which embeds every passage again.
 
 Set `VOYAGE_API_KEY` in the environment or in `.env`. This command reads `.env`. The API process does not.
 

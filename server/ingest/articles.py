@@ -20,7 +20,9 @@ and its section heading so the chunk still says what it is about.
 
 import csv
 import hashlib
+import io
 import json
+import logging
 import os
 import socket
 import time
@@ -28,6 +30,8 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import date, datetime, timezone
+
+from pypdf import PdfReader
 
 from server.db import REPO_ROOT, load_env
 from server.ingest.corpus import (
@@ -42,12 +46,18 @@ from server.ingest.corpus import (
     update_document,
 )
 
+# pypdf logs repairs to malformed cross-reference tables, which poll PDFs often have.
+logging.getLogger("pypdf").setLevel(logging.ERROR)
+
 INGESTION_DIR = REPO_ROOT / "data" / "ingestion"
 VOYAGE_URL = "https://api.voyageai.com/v1/embeddings"
 USER_AGENT = "Mozilla/5.0 (compatible; Papertrail/1.0)"
 MIN_CHARS = 40
 MAX_CHARS = 800
 RETRY_STATUS = {429, 500, 502, 503, 504}
+# Survey values that can come from different places, and that the check at the
+# end of a run expects. Field dates are always set, by the survey's main source.
+SOURCED_FIELDS = ("geography", "sample_size", "population", "margin_of_error")
 
 MONTH = (
     r"(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?"
@@ -83,8 +93,8 @@ def ingest_articles(source, label, read, dry_run=False):
 
     read(row, fetch) returns {"blocks": [...], "surveys": [...]} and may add
     "published_on". A block is {"section", "text", "kind"}, where kind is
-    "text" or "chart". A survey has field_start, field_end, sample_size,
-    population, and margin_of_error.
+    "text" or "chart". A survey has geography, field_start, field_end,
+    sample_size, population, margin_of_error, and metadata_source.
     """
     load_env()
     directory = INGESTION_DIR / source
@@ -103,8 +113,9 @@ def ingest_articles(source, label, read, dry_run=False):
             if conn is not None and not ready:
                 print(f"{label} would recreate the corpus tables. Their columns do not match.")
             _print_dry_run(label, pages, removed, failures)
-            return
-        _write(conn, source, label, pages, manifest_urls, failures)
+        else:
+            _write(conn, source, label, pages, manifest_urls, failures)
+        _print_gaps(label, pages)
     finally:
         if conn is not None:
             conn.close()
@@ -193,6 +204,39 @@ def _passage(title, block):
 
 def clean(text):
     return " ".join(text.split())
+
+
+def describe_sources(main, fields):
+    """metadata_source text. 'pdf' with {'sample_size': 'page'} gives 'pdf; page for sample_size'."""
+    others = {}
+    for field in SOURCED_FIELDS:
+        source = fields.get(field, main)
+        if source != main:
+            others.setdefault(source, []).append(field)
+    return "; ".join([main] + [f"{name} for {', '.join(names)}" for name, names in others.items()])
+
+
+def read_sources(text):
+    """The main source and the per-field exceptions in metadata_source text."""
+    if not text:
+        return None, {}
+    main, *rest = text.split("; ")
+    fields = {}
+    for part in rest:
+        name, _, names = part.partition(" for ")
+        for field in names.split(", "):
+            fields[field] = name
+    return main, fields
+
+
+def is_pdf(body):
+    return body[:5] == b"%PDF-"
+
+
+def pdf_text(body, pages=None):
+    """The text of a PDF's first `pages` pages, or of every page."""
+    reader = PdfReader(io.BytesIO(body))
+    return "\n".join(page.extract_text() or "" for page in reader.pages[:pages])
 
 
 def iso_date(year, month, day):
@@ -303,10 +347,12 @@ def _print_dry_run(label, pages, removed, failures):
         for survey in page["surveys"]:
             print(
                 f"  survey {survey['survey_key']}: "
+                f"geography {_or_none(survey['geography'])}, "
                 f"field {survey['field_start']} to {survey['field_end']}, "
                 f"sample_size {_or_none(survey['sample_size'])}, "
                 f"population {_or_none(survey['population'])}, "
-                f"margin_of_error {_or_none(survey['margin_of_error'])}"
+                f"margin_of_error {_or_none(survey['margin_of_error'])}, "
+                f"metadata_source {_or_none(survey['metadata_source'])}"
             )
         if page["action"] == "update":
             continue
@@ -314,74 +360,106 @@ def _print_dry_run(label, pages, removed, failures):
             print(f"\n  [{position}] {text}")
 
 
+def _print_gaps(label, pages):
+    """List each survey still missing a value, and each page that cites no survey."""
+    surveys = {}
+    for page in pages:
+        for survey in page["surveys"]:
+            surveys[survey["survey_key"]] = survey
+    gaps = []
+    for key, survey in surveys.items():
+        missing = [field for field in SOURCED_FIELDS if survey[field] is None]
+        if missing:
+            gaps.append(
+                f"  {key}: missing {', '.join(missing)} "
+                f"(metadata_source {_or_none(survey['metadata_source'])})"
+            )
+    unlinked = [page["url"] for page in pages if not page["surveys"]]
+    print(
+        f"\n{label} check: {len(gaps)} of {len(surveys)} surveys missing a field. "
+        f"{len(unlinked)} pages cite no survey."
+    )
+    for line in gaps:
+        print(line)
+    for url in unlinked:
+        print(f"  no survey: {url}")
+
+
 def _or_none(value):
     return "none" if value is None else value
 
 
 def _resolve_surveys(source, pages, stored):
-    """Key each page's surveys and fill a page's missing sample from its siblings.
+    """Key each page's surveys and merge the values every page found for one survey.
 
-    The key is the field dates plus the sample size, so two surveys fielded on
-    the same dates stay apart. A survey found without a sample takes the size
-    of the one sized survey with the same dates, when there is exactly one.
+    The key is the pollster, the geography, and the field dates, so two state
+    polls fielded on the same dates stay apart. A survey found without a
+    geography takes the one geography known for the same dates, when there is
+    exactly one. Each other value comes from the first page that states it,
+    or else from the stored survey, and metadata_source names where each
+    value came from.
     """
-    sizes = {}
+    places = {}
     for survey in stored + [survey for page in pages for survey in page["surveys"]]:
-        if survey["sample_size"] is not None:
+        if survey["geography"] is not None:
             dates = (survey["field_start"], survey["field_end"])
-            sizes.setdefault(dates, set()).add(survey["sample_size"])
+            places.setdefault(dates, set()).add(survey["geography"])
     merged = {}
+    # Per survey key: the main source, and where each value that was taken came from.
+    origins = {}
 
-    def absorb(survey, size):
-        key = _survey_key(source, survey["field_start"], survey["field_end"], size)
+    def absorb(survey, geography):
+        key = _survey_key(source, geography, survey["field_start"], survey["field_end"])
         entry = merged.setdefault(
             key,
             {
                 "source": source,
                 "survey_key": key,
+                "geography": geography,
                 "field_start": survey["field_start"],
                 "field_end": survey["field_end"],
-                "sample_size": size,
+                "sample_size": None,
                 "population": None,
                 "margin_of_error": None,
+                "metadata_source": None,
             },
         )
-        population = survey["population"]
-        if population and (
-            entry["population"] is None
-            or (
-                population.lower().startswith("u.s.")
-                and not entry["population"].lower().startswith("u.s.")
-            )
-        ):
-            entry["population"] = population
-        if entry["margin_of_error"] is None:
-            entry["margin_of_error"] = survey["margin_of_error"]
+        main, fields = read_sources(survey.get("metadata_source"))
+        origin = origins.setdefault(key, [main, {}])
+        if origin[0] is None:
+            origin[0] = main
+        if survey["geography"] is not None and "geography" not in origin[1]:
+            origin[1]["geography"] = fields.get("geography", main)
+        for field in ("sample_size", "population", "margin_of_error"):
+            if entry[field] is None and survey.get(field) is not None:
+                entry[field] = survey[field]
+                origin[1][field] = fields.get(field, main)
         return key
 
-    for survey in stored:
-        absorb(survey, survey["sample_size"])
     for page in pages:
         keys = []
         for survey in page["surveys"]:
-            size = survey["sample_size"]
-            if size is None:
-                known = sizes.get((survey["field_start"], survey["field_end"]), set())
+            geography = survey["geography"]
+            if geography is None:
+                known = places.get((survey["field_start"], survey["field_end"]), set())
                 if len(known) == 1:
-                    size = next(iter(known))
-            key = absorb(survey, size)
+                    geography = next(iter(known))
+            key = absorb(survey, geography)
             if key not in keys:
                 keys.append(key)
         page["survey_keys"] = keys
+    # Stored values only fill what this run's pages left out.
+    for survey in stored:
+        absorb(survey, survey["geography"])
+    for key, (main, fields) in origins.items():
+        if main is not None:
+            merged[key]["metadata_source"] = describe_sources(main, fields)
     for page in pages:
         page["surveys"] = [merged[key] for key in page.pop("survey_keys")]
 
 
-def _survey_key(source, field_start, field_end, sample_size):
-    key = f"{source}-{field_start}-{field_end}"
-    if sample_size is not None:
-        key += f"-n{sample_size}"
-    return key
+def _survey_key(source, geography, field_start, field_end):
+    return f"{source}-{geography or 'unknown'}-{field_start}-{field_end}"
 
 
 def _content_hash(passages):
