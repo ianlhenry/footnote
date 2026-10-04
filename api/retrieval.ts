@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import { connect } from "./db.ts";
+import { readOnlyDatabase } from "./db.ts";
 
 // Must match the model and width the ingest stored in passage_embeddings
 // (server/ingest/corpus.py). A different model's query vectors would land in
@@ -28,16 +28,9 @@ export interface Passage {
   surveys: string[];
 }
 
-let db: DatabaseSync | undefined;
-
-function database(): DatabaseSync {
-  db ??= connect({ readOnly: true });
-  return db;
-}
-
 export async function searchPassages(question: string, k: number): Promise<Passage[]> {
   const vector = await embedQuery(question);
-  const conn = database();
+  const conn = readOnlyDatabase();
   const hits = conn
     .prepare(
       `SELECT passage_id, distance FROM passage_embeddings

@@ -11,6 +11,14 @@ export function databasePath(): string {
   return path.isAbsolute(configured) ? configured : path.join(repoRoot, configured);
 }
 
+let shared: DatabaseSync | undefined;
+
+// One read-only connection for answering questions, opened on first use.
+export function readOnlyDatabase(): DatabaseSync {
+  shared ??= connect({ readOnly: true });
+  return shared;
+}
+
 export function connect({ readOnly = false } = {}): DatabaseSync {
   const file = databasePath();
   if (!readOnly) fs.mkdirSync(path.dirname(file), { recursive: true });

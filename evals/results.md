@@ -12,6 +12,7 @@ Only cases whose labels a person has checked. Compare runs here.
 | [2026-10-04-20-32-pilot-baseline-agent-one-claude-call](runs/2026-10-04-20-32-pilot-baseline-agent-one-claude-call/report.md) | pilot: baseline agent (one Claude call, no retrieval or tools) | c354635+ | 3 | 0% (2) | 0% (2) | 100% (3) | 67% (3) | 33% (3) | — | — | — | — | $0.0252 |
 | [2026-10-04-20-56-baseline-one-claude-call-no-retrieval-or](runs/2026-10-04-20-56-baseline-one-claude-call-no-retrieval-or/report.md) | baseline: one Claude call, no retrieval or tools | c354635+ | 30 | 2% (24) | 0% (24) | 100% (30) | 80% (30) | 10% (30) | — | — | — | — | $0.2762 |
 | [2026-10-04-21-21-retrieval-top-8-passages-as-citable](runs/2026-10-04-21-21-retrieval-top-8-passages-as-citable/report.md) | retrieval: top-8 passages as citable search results, polls only | baf17c9+ | 30 | 79% (24) | 81% (24) | 100% (30) | 80% (30) | 80% (30) | 79% (24) | 95% (30) | 100% (30) | 96% (30) | $0.6791 |
+| [2026-10-04-21-44-fec-tools-search-candidates-rank](runs/2026-10-04-21-44-fec-tools-search-candidates-rank/report.md) | fec tools: search_candidates, rank_candidates, search_committees | 53715c6+ | 30 | 98% (24) | 98% (24) | 100% (30) | 80% (30) | 100% (30) | 100% (24) | 93% (29) | 100% (26) | 98% (29) | $0.8682 |
 
 ## All cases
 
@@ -22,6 +23,7 @@ Includes cases with unverified labels, so a score here can be wrong because the 
 | [2026-10-04-20-32-pilot-baseline-agent-one-claude-call](runs/2026-10-04-20-32-pilot-baseline-agent-one-claude-call/report.md) | pilot: baseline agent (one Claude call, no retrieval or tools) | c354635+ | 3 | 0% (2) | 0% (2) | 100% (3) | 67% (3) | 33% (3) | — | — | — | — | $0.0252 |
 | [2026-10-04-20-56-baseline-one-claude-call-no-retrieval-or](runs/2026-10-04-20-56-baseline-one-claude-call-no-retrieval-or/report.md) | baseline: one Claude call, no retrieval or tools | c354635+ | 30 | 2% (24) | 0% (24) | 100% (30) | 80% (30) | 10% (30) | — | — | — | — | $0.2762 |
 | [2026-10-04-21-21-retrieval-top-8-passages-as-citable](runs/2026-10-04-21-21-retrieval-top-8-passages-as-citable/report.md) | retrieval: top-8 passages as citable search results, polls only | baf17c9+ | 30 | 79% (24) | 81% (24) | 100% (30) | 80% (30) | 80% (30) | 79% (24) | 95% (30) | 100% (30) | 96% (30) | $0.6791 |
+| [2026-10-04-21-44-fec-tools-search-candidates-rank](runs/2026-10-04-21-44-fec-tools-search-candidates-rank/report.md) | fec tools: search_candidates, rank_candidates, search_committees | 53715c6+ | 30 | 98% (24) | 98% (24) | 100% (30) | 80% (30) | 100% (30) | 100% (24) | 93% (29) | 100% (26) | 98% (29) | $0.8682 |
 
 ## Metrics
 
