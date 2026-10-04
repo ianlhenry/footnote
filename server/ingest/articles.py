@@ -6,8 +6,11 @@ else is shared: the manifest, the fetch cache, chunking, embedding, survey
 keys, and the writes.
 
 Each URL is fetched once and saved under data/ingestion/<source>/cache/ after
-the reader succeeds, so an error or challenge page is never cached. A later
-run reads that file instead of the network.
+the reader succeeds. A reader that skips a linked page it cannot read calls
+fetch.forget(url), so an error or challenge page is never cached. A later
+run reads that file instead of the network. Cached files never expire. With
+refetch, every URL is downloaded again once per run, and a page that fails
+to read keeps its old cached copy.
 
 Every run re-reads every page and rewrites its metadata and survey links. A
 page is embedded again only when its passage text changes or its vectors
@@ -33,14 +36,18 @@ from datetime import date, datetime, timezone
 
 from pypdf import PdfReader
 
-from server.db import REPO_ROOT, load_env
+from server.db import REPO_ROOT, connect_vectors, load_env
 from server.ingest.corpus import (
     EMBEDDING_DIMENSION,
     EMBEDDING_MODEL,
+    IngestError,
+    SchemaMismatch,
     connect_corpus,
     document_state,
     prune,
+    rebuild,
     replace_document,
+    schema_missing,
     schema_ready,
     stored_surveys,
     update_document,
@@ -103,7 +110,7 @@ class HTTPFailure(RuntimeError):
         self.code = code
 
 
-def ingest_articles(source, label, read, dry_run=False):
+def ingest_articles(source, label, read, no_write=False, refetch=False):
     """Load every row of data/ingestion/<source>/<source>_manifest.csv.
 
     read(row, fetch) returns {"blocks": [...], "surveys": [...]} and may add
@@ -115,19 +122,21 @@ def ingest_articles(source, label, read, dry_run=False):
     directory = INGESTION_DIR / source
     rows = _manifest(directory / f"{source}_manifest.csv")
     manifest_urls = {row["url"] for row in rows}
-    conn = connect_corpus(readonly=dry_run)
+    conn = connect_corpus(readonly=no_write)
     try:
+        # A write connection has already refused a mismatch. Refuse it here
+        # too, so --no-write does not preview a run that would fail.
+        if conn is not None and not schema_ready(conn) and not schema_missing(conn):
+            raise SchemaMismatch()
         ready = conn is not None and schema_ready(conn)
         stored = document_state(conn, source) if ready else {}
-        pages, failures = _read_pages(rows, read, directory / "cache")
+        pages, failures = _read_pages(rows, read, directory / "cache", refetch)
         _resolve_surveys(source, pages, stored_surveys(conn, source) if ready else [])
         for page in pages:
             page["action"] = _action(page, stored.get(page["url"]))
         removed = sorted(set(stored) - manifest_urls)
-        if dry_run:
-            if conn is not None and not ready:
-                print(f"{label} would recreate the corpus tables. Their columns do not match.")
-            _print_dry_run(label, pages, removed, failures)
+        if no_write:
+            _print_preview(label, pages, removed, failures)
         else:
             _write(conn, source, label, pages, manifest_urls, failures)
         _print_gaps(label, pages)
@@ -136,14 +145,86 @@ def ingest_articles(source, label, read, dry_run=False):
             conn.close()
 
 
-def _read_pages(rows, read, cache_dir):
+def rebuild_articles(sources, no_write=False, refetch=False):
+    """Replace the corpus tables with every source's pages, embedded again.
+
+    sources holds (source, label, read) for every corpus source, since the
+    old tables go away for all of them. Pages are read and embedded first, and
+    the tables are swapped in one transaction at the end, so a failure before
+    then leaves the old tables in place. Any page that fails to read or embed
+    stops the rebuild, since a Voyage outage or a fetch failure would
+    otherwise swap in a partial or empty corpus. A page that always fails has
+    to be fixed or removed from its manifest first.
+    """
+    load_env()
+    api_key = os.environ.get("VOYAGE_API_KEY")
+    if not no_write and not api_key:
+        raise IngestError("rebuilding the corpus embeds every passage. Set VOYAGE_API_KEY.")
+    loads = []
+    for source, label, read in sources:
+        directory = INGESTION_DIR / source
+        rows = _manifest(directory / f"{source}_manifest.csv")
+        pages, failures = _read_pages(rows, read, directory / "cache", refetch)
+        # The old surveys are in a layout this code cannot read.
+        _resolve_surveys(source, pages, [])
+        for page in pages:
+            page["action"] = "insert"
+        loads.append({"source": source, "label": label, "pages": pages, "failures": failures})
+
+    if no_write:
+        print("Would drop the corpus tables and recreate them with these documents.")
+        for load in loads:
+            _print_preview(load["label"], load["pages"], [], load["failures"])
+            _print_gaps(load["label"], load["pages"])
+        if any(load["failures"] for load in loads):
+            print("The rebuild would stop: every page has to read cleanly.")
+        return
+
+    failed = 0
+    for load in loads:
+        _print_failures(load["label"], load["failures"])
+        failed += len(load["failures"])
+    if failed:
+        raise IngestError(
+            f"{failed} pages failed to read, so the corpus was not rebuilt. "
+            "Fix them or remove them from the manifest."
+        )
+    documents = []
+    for load in loads:
+        for page in load["pages"]:
+            try:
+                vectors = _embed(page["passages"], api_key)
+            except Exception as error:
+                if isinstance(error, HTTPFailure) and error.code in (401, 403):
+                    raise
+                raise IngestError(
+                    f"{page['url']} failed to embed, so the corpus was not rebuilt: {error}"
+                ) from error
+            documents.append(
+                (_document(load["source"], page), page["passages"], vectors, page["surveys"])
+            )
+    conn = connect_vectors()
+    try:
+        rebuild(conn, documents)
+    finally:
+        conn.close()
+    for load in loads:
+        passages = sum(len(page["passages"]) for page in load["pages"])
+        print(f"{load['label']}: rebuilt with {len(load['pages'])} articles, {passages} passages.")
+        _print_gaps(load["label"], load["pages"])
+
+
+def _read_pages(rows, read, cache_dir, refetch):
     pages = []
     failures = []
+    # With refetch, URLs already downloaded this run, such as a methodology
+    # page several articles link, are read from the cache.
+    fresh = set() if refetch else None
     for row in rows:
         url = row["url"]
-        cache = _Cache(cache_dir)
+        cache = _Cache(cache_dir, fresh)
         try:
-            found = read(row, cache.fetch)
+            found = read(row, cache)
             passages = chunk(row["title"], found["blocks"])
             if not passages:
                 raise RuntimeError("no article text")
@@ -166,25 +247,46 @@ def _read_pages(rows, read, cache_dir):
 
 
 class _Cache:
-    """Fetched bodies wait here until the page reads cleanly."""
+    """Fetched bodies wait here until the page reads cleanly.
 
-    def __init__(self, directory):
+    Readers call the cache itself to fetch, and forget(url) to drop a body
+    they could not read. A body this run downloaded is never saved. One read
+    from a file cached by an earlier run is deleted. A failed download
+    changes nothing, so an old copy survives a refetch that times out.
+    fresh is None, or the set of paths downloaded this run when every URL is
+    fetched again.
+    """
+
+    def __init__(self, directory, fresh=None):
         self.directory = directory
+        self.fresh = fresh
         self.pending = {}
+        self.from_disk = set()
 
-    def fetch(self, url):
+    def __call__(self, url):
         path = _cache_path(self.directory, url)
-        if path.exists() and path.stat().st_size > 0:
+        if path in self.pending:
+            return self.pending[path]
+        stale = self.fresh is not None and path not in self.fresh
+        if not stale and path.exists() and path.stat().st_size > 0:
+            self.from_disk.add(path)
             return path.read_bytes()
         body = _download(url)
         self.pending[path] = body
         return body
+
+    def forget(self, url):
+        path = _cache_path(self.directory, url)
+        if self.pending.pop(path, None) is None and path in self.from_disk:
+            path.unlink(missing_ok=True)
 
     def commit(self):
         if self.pending:
             self.directory.mkdir(parents=True, exist_ok=True)
         for path, body in self.pending.items():
             path.write_bytes(body)
+            if self.fresh is not None:
+                self.fresh.add(path)
         self.pending = {}
 
 
@@ -275,12 +377,11 @@ def _write(conn, source, label, pages, manifest_urls, failures):
     api_key = os.environ.get("VOYAGE_API_KEY")
     if to_embed and not api_key:
         passages = sum(len(page["passages"]) for page in to_embed)
-        print(
-            f"{label}: {len(to_embed)} articles ({passages} passages) need embedding. "
+        _print_failures(label, failures)
+        raise IngestError(
+            f"{len(to_embed)} articles ({passages} passages) need embedding. "
             "Set VOYAGE_API_KEY to embed and store them."
         )
-        _print_failures(label, failures)
-        raise SystemExit(1)
 
     embedded = 0
     updated = 0
@@ -332,7 +433,7 @@ def _print_failures(label, failures):
         print(f"{label} failed: {failure}")
 
 
-def _print_dry_run(label, pages, removed, failures):
+def _print_preview(label, pages, removed, failures):
     to_embed = [page for page in pages if page["action"] != "update"]
     passage_count = sum(len(page["passages"]) for page in to_embed)
     print(
@@ -494,7 +595,7 @@ def _fetched_at(directory, url):
 def _manifest(path):
     """Rows with a url and a title. Every column is kept, stripped."""
     if not path.exists():
-        raise FileNotFoundError(f"missing {path}")
+        raise IngestError(f"missing {path}")
     rows = []
     with path.open(newline="", encoding="utf-8-sig") as handle:
         for raw in csv.DictReader(handle):
@@ -506,7 +607,7 @@ def _manifest(path):
             row["doc_type"] = row.get("type_guess", "")
             rows.append(row)
     if not rows:
-        raise ValueError(f"{path} has no articles")
+        raise IngestError(f"{path} has no articles")
     return rows
 
 

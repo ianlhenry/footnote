@@ -194,15 +194,19 @@ SOURCES = (
 )
 
 
-def ingest_fec(dry_run=False):
+def ingest_fec(no_write=False):
     # Read every file before dropping anything. A short row or a missing
     # column then leaves the previous load in place.
     loaded = [_read(source) for source in SOURCES]
     summary = ", ".join(f"{len(source['rows'])} {source['table']}" for source in loaded)
-    if dry_run:
+    if no_write:
         print(f"FEC would replace: {summary}.")
         return
     with connect() as conn:
+        # sqlite3 only opens a transaction before DML, so without this each
+        # DROP and CREATE commits on its own and a failed insert leaves the
+        # tables empty.
+        conn.execute("BEGIN")
         for source in loaded:
             _create(conn, source)
         for source in loaded:
@@ -232,8 +236,8 @@ def _read(source):
 
 def _file_header(path, delimiter):
     """Read column names from the first row of a CSV that includes a header."""
-    with path.open(newline="") as handle:
-        header = next(csv.reader(handle, delimiter=delimiter), None)
+    with path.open(newline="", encoding="utf-8") as handle:
+        header = next(_reader(handle, delimiter), None)
     if not header:
         raise ValueError(f"{path} is missing a header row")
     return _check_names([name.strip().upper() for name in header])
@@ -241,7 +245,7 @@ def _file_header(path, delimiter):
 
 def _header(path):
     """Read the one-line CSV of column names that accompanies some FEC files."""
-    with path.open(newline="") as handle:
+    with path.open(newline="", encoding="utf-8") as handle:
         rows = list(csv.reader(handle))
     if len(rows) != 1 or not rows[0]:
         raise ValueError(f"{path} should contain one header row")
@@ -262,8 +266,8 @@ def _rows(path, columns, delimiter="|", skip_header=False):
     integer_at = {index for index, column in enumerate(columns) if column in INTEGER_COLUMNS}
     real_at = {index for index, column in enumerate(columns) if column in REAL_COLUMNS}
     rows = []
-    with path.open(newline="") as handle:
-        reader = csv.reader(handle, delimiter=delimiter)
+    with path.open(newline="", encoding="utf-8") as handle:
+        reader = _reader(handle, delimiter)
         if skip_header:
             next(reader, None)
         start = 2 if skip_header else 1
@@ -274,16 +278,29 @@ def _rows(path, columns, delimiter="|", skip_header=False):
                 )
             row = []
             for index, value in enumerate(raw):
-                if value == "":
-                    row.append(None)
-                elif index in integer_at:
-                    row.append(int(value))
-                elif index in real_at:
-                    row.append(float(value))
-                else:
-                    row.append(value)
+                try:
+                    if value == "":
+                        row.append(None)
+                    elif index in integer_at:
+                        row.append(int(value))
+                    elif index in real_at:
+                        row.append(float(value))
+                    else:
+                        row.append(value)
+                except ValueError:
+                    raise ValueError(
+                        f"{path}:{line_number} {columns[index]} is not a number: {value!r}"
+                    ) from None
             rows.append(tuple(row))
     return rows
+
+
+def _reader(handle, delimiter):
+    # The pipe-delimited files are not quoted. A name such as "BUD" SMITH would
+    # otherwise lose its quotes, and an unmatched quote would swallow fields.
+    if delimiter == "|":
+        return csv.reader(handle, delimiter=delimiter, quoting=csv.QUOTE_NONE)
+    return csv.reader(handle, delimiter=delimiter)
 
 
 def _create(conn, source):

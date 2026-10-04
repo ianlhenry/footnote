@@ -120,8 +120,8 @@ MARGIN_REACH = 1500
 METHODS_HUB = re.compile(r"/topic/|/our-methods/|american-trends-panel", re.IGNORECASE)
 
 
-def ingest_pew(dry_run=False):
-    ingest_articles("pew", "Pew", read_page, dry_run=dry_run)
+def ingest_pew(no_write=False, refetch=False):
+    ingest_articles("pew", "Pew", read_page, no_write=no_write, refetch=refetch)
 
 
 def read_page(row, fetch):
@@ -133,6 +133,8 @@ def read_page(row, fetch):
         try:
             _add_methodology(surveys, find_surveys(_methodology_text(fetch(url))))
         except Exception as error:
+            # Keep an error or challenge page out of the cache.
+            fetch.forget(url)
             print(f"Pew methodology skipped: {url}: {error}")
     return {"blocks": blocks, "surveys": surveys}
 
@@ -167,8 +169,13 @@ def methodology_links(page, page_url):
 
 def _methodology_text(body):
     if is_pdf(body):
-        return pdf_text(body)
-    return "\n".join(block["text"] for block in read_article(body.decode("utf-8", "replace")))
+        text = pdf_text(body)
+    else:
+        blocks = read_article(body.decode("utf-8", "replace"))
+        text = "\n".join(block["text"] for block in blocks)
+    if not text.strip():
+        raise RuntimeError("no methodology text")
+    return text
 
 
 def _add_methodology(surveys, found):

@@ -80,16 +80,43 @@ SURVEY_FIELDS = (
 )
 
 
+class IngestError(RuntimeError):
+    """A failure the message explains on its own, so no traceback is printed."""
+
+
+class SchemaMismatch(IngestError):
+    def __init__(self):
+        super().__init__(
+            "the corpus tables do not match this code. Run with --rebuild-corpus to "
+            "drop them and embed every source's passages again."
+        )
+
+
 def connect_corpus(readonly=False):
     """Open the database with the corpus tables in place.
 
-    A read-only connection is not rebuilt. It is None when the database does
+    A read-only connection is not changed. It is None when the database does
     not exist, and schema_ready() says whether its tables can be read.
     """
     conn = connect_vectors(readonly=readonly)
     if conn is not None and not readonly:
-        ensure_schema(conn)
+        try:
+            ensure_schema(conn)
+        except Exception:
+            conn.close()
+            raise
     return conn
+
+
+def needs_rebuild():
+    """Whether the corpus tables exist but do not match COLUMNS."""
+    conn = connect_vectors(readonly=True)
+    if conn is None:
+        return False
+    try:
+        return not schema_ready(conn) and not schema_missing(conn)
+    finally:
+        conn.close()
 
 
 def schema_ready(conn):
@@ -101,11 +128,16 @@ def schema_ready(conn):
     return True
 
 
-def ensure_schema(conn):
-    """Add missing ADDED_COLUMNS, or recreate the corpus tables when their columns do not match.
+def schema_missing(conn):
+    """Whether none of the corpus tables exist yet."""
+    return not any(_columns(conn, table) for table in TABLES)
 
-    Everything in them comes from the page cache and Voyage, so any other old
-    layout is dropped and loaded again rather than migrated.
+
+def ensure_schema(conn):
+    """Add missing ADDED_COLUMNS, or create the corpus tables when there are none.
+
+    Any other layout has to go through rebuild(), which replaces the tables
+    only once every source's new rows are ready.
     """
     if schema_ready(conn):
         with conn:
@@ -116,75 +148,95 @@ def ensure_schema(conn):
                         conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {kind}")
             conn.execute(GEOGRAPHY_INDEX)
         return
+    if not schema_missing(conn):
+        raise SchemaMismatch()
     with conn:
-        for table in TABLES:
-            conn.execute(f"DROP TABLE IF EXISTS {table}")
-        conn.execute(
-            """
-            CREATE TABLE documents (
-                id INTEGER PRIMARY KEY,
-                source TEXT NOT NULL,
-                title TEXT NOT NULL,
-                url TEXT NOT NULL UNIQUE,
-                topic TEXT,
-                published_on TEXT,
-                doc_type TEXT,
-                fetched_at TEXT,
-                content_hash TEXT NOT NULL
-            )
-            """
+        _create_tables(conn)
+
+
+def rebuild(conn, documents):
+    """Drop the corpus tables, recreate them, and store documents, in one transaction.
+
+    Everything in the old tables came from the page cache and Voyage, so an
+    old layout is replaced rather than migrated. documents holds
+    (document, passages, vectors, surveys) for every source. If anything
+    fails, the old tables stay as they were.
+    """
+    with conn:
+        _create_tables(conn)
+        for document, passages, vectors, surveys in documents:
+            replace_document(conn, document, passages, vectors, surveys)
+
+
+def _create_tables(conn):
+    for table in TABLES:
+        conn.execute(f"DROP TABLE IF EXISTS {table}")
+    conn.execute(
+        """
+        CREATE TABLE documents (
+            id INTEGER PRIMARY KEY,
+            source TEXT NOT NULL,
+            title TEXT NOT NULL,
+            url TEXT NOT NULL UNIQUE,
+            topic TEXT,
+            published_on TEXT,
+            doc_type TEXT,
+            fetched_at TEXT,
+            content_hash TEXT NOT NULL
         )
-        conn.execute("CREATE INDEX documents_source ON documents (source)")
-        conn.execute(
-            """
-            CREATE TABLE passages (
-                id INTEGER PRIMARY KEY,
-                document_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
-                position INTEGER NOT NULL,
-                text TEXT NOT NULL,
-                UNIQUE (document_id, position)
-            )
-            """
+        """
+    )
+    conn.execute("CREATE INDEX documents_source ON documents (source)")
+    conn.execute(
+        """
+        CREATE TABLE passages (
+            id INTEGER PRIMARY KEY,
+            document_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+            position INTEGER NOT NULL,
+            text TEXT NOT NULL,
+            UNIQUE (document_id, position)
         )
-        conn.execute("CREATE INDEX passages_document_id ON passages (document_id)")
-        conn.execute(
-            f"""
-            CREATE VIRTUAL TABLE passage_embeddings USING vec0(
-                passage_id INTEGER PRIMARY KEY,
-                embedding float[{EMBEDDING_DIMENSION}],
-                embedding_model TEXT NOT NULL
-            )
-            """
+        """
+    )
+    conn.execute("CREATE INDEX passages_document_id ON passages (document_id)")
+    conn.execute(
+        f"""
+        CREATE VIRTUAL TABLE passage_embeddings USING vec0(
+            passage_id INTEGER PRIMARY KEY,
+            embedding float[{EMBEDDING_DIMENSION}],
+            embedding_model TEXT NOT NULL
         )
-        conn.execute(
-            """
-            CREATE TABLE surveys (
-                id INTEGER PRIMARY KEY,
-                source TEXT NOT NULL,
-                survey_key TEXT NOT NULL UNIQUE,
-                geography TEXT,
-                field_start TEXT NOT NULL,
-                field_end TEXT NOT NULL,
-                sample_size INTEGER,
-                population TEXT,
-                margin_of_error REAL,
-                metadata_source TEXT
-            )
-            """
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE surveys (
+            id INTEGER PRIMARY KEY,
+            source TEXT NOT NULL,
+            survey_key TEXT NOT NULL UNIQUE,
+            geography TEXT,
+            field_start TEXT NOT NULL,
+            field_end TEXT NOT NULL,
+            sample_size INTEGER,
+            population TEXT,
+            margin_of_error REAL,
+            metadata_source TEXT
         )
-        conn.execute(GEOGRAPHY_INDEX)
-        conn.execute(
-            """
-            CREATE TABLE document_surveys (
-                document_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
-                survey_id INTEGER NOT NULL REFERENCES surveys(id) ON DELETE CASCADE,
-                PRIMARY KEY (document_id, survey_id)
-            )
-            """
+        """
+    )
+    conn.execute(GEOGRAPHY_INDEX)
+    conn.execute(
+        """
+        CREATE TABLE document_surveys (
+            document_id INTEGER NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+            survey_id INTEGER NOT NULL REFERENCES surveys(id) ON DELETE CASCADE,
+            PRIMARY KEY (document_id, survey_id)
         )
-        conn.execute(
-            "CREATE INDEX document_surveys_survey_id ON document_surveys (survey_id)"
-        )
+        """
+    )
+    conn.execute(
+        "CREATE INDEX document_surveys_survey_id ON document_surveys (survey_id)"
+    )
 
 
 def document_state(conn, source):
@@ -202,7 +254,10 @@ def document_state(conn, source):
         SELECT passages.document_id, passage_embeddings.embedding_model
         FROM passages
         JOIN passage_embeddings ON passage_embeddings.passage_id = passages.id
-        """
+        JOIN documents ON documents.id = passages.document_id
+        WHERE documents.source = ?
+        """,
+        (source,),
     ):
         if document_id in by_id:
             by_id[document_id]["models"].add(model)

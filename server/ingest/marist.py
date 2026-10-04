@@ -63,8 +63,8 @@ POPULATION = re.compile(r"(adults|registered voters|likely voters|residents)$", 
 STATES = {name.lower(): code for name, code in STATE_CODES.items()}
 
 
-def ingest_marist(dry_run=False):
-    ingest_articles("marist", "Marist", read_release, dry_run=dry_run)
+def ingest_marist(no_write=False, refetch=False):
+    ingest_articles("marist", "Marist", read_release, no_write=no_write, refetch=refetch)
 
 
 def read_release(row, fetch):
