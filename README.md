@@ -31,3 +31,34 @@ python3 -m venv .venv
 .venv/bin/pip install -r server/requirements.txt
 .venv/bin/python -m server.ingest
 ```
+
+The FEC loader replaces `fec_candidate`, `fec_committee`, `fec_candidate_committee`, `fec_candidate_summary`, `fec_pac_summary`, and `fec_independent_expenditure` from `cn.txt`, `cm.txt`, `ccl.txt`, `weball26.txt`, `webk26.txt`, and `independent_expenditure_2026.csv`. Marist and Pew are not loaded yet.
+
+Raw downloads live under `data/ingestion/<source>/`. `data/` is gitignored, so those files stay local. The database is a separate file, `data/papertrail.sqlite`.
+
+```
+data/
+  papertrail.sqlite
+  ingestion/
+    fec/
+      cn.txt
+      cn_header_file.csv
+      cm.txt
+      cm_header_file.csv
+      ccl.txt
+      ccl_header_file.csv
+      weball26.txt
+      webk26.txt
+      independent_expenditure_2026.csv
+```
+
+FEC files are from the [FEC bulk data page](https://www.fec.gov/data/browse-data/?tab=bulk-data). The `.txt` files are pipe-delimited and have no header row. `cn`, `cm`, and `ccl` each have a matching `*_header_file.csv`: one CSV line of column names, in the same order as the fields. `weball26.txt` and `webk26.txt` have no header file. Their columns are the fields in the FEC descriptions linked below. `independent_expenditure_2026.csv` is comma-separated and includes a header row.
+
+| File | Header | What it is |
+| --- | --- | --- |
+| `cn.txt` | `cn_header_file.csv` | Candidate master. One record for each candidate who has registered with the FEC or appeared on a state ballot list. |
+| `cm.txt` | `cm_header_file.csv` | Committee master. One record for each committee registered with the FEC. |
+| `ccl.txt` | `ccl_header_file.csv` | Candidate-committee linkages. One record for each link between a candidate and a committee. |
+| `weball26.txt` | [All candidates file description](https://www.fec.gov/campaign-finance-data/all-candidates-file-description/) | All-candidates summary for 2025–2026. One record per candidate who raised or spent money, with receipt and disbursement totals. |
+| `webk26.txt` | [PAC and party summary file description](https://www.fec.gov/campaign-finance-data/pac-and-party-summary-file-description/) | PAC and party summary for 2025–2026. One record per committee, with receipts, disbursements, and independent-expenditure totals. |
+| `independent_expenditure_2026.csv` | Header row in the file | Independent expenditures for 2025–2026. One row per reported expenditure, including amendments. |

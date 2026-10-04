@@ -39,7 +39,10 @@ def connect():
     conn = sqlite3.connect(path, factory=ClosingConnection)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
-    conn.enable_load_extension(True)
-    sqlite_vec.load(conn)
-    conn.enable_load_extension(False)
+    # Apple's Python builds SQLite without extension loading. sqlite-vec is
+    # still loaded by the Node API. Plain tables can be written either way.
+    if hasattr(conn, "enable_load_extension"):
+        conn.enable_load_extension(True)
+        sqlite_vec.load(conn)
+        conn.enable_load_extension(False)
     return conn
