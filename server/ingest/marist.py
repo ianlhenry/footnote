@@ -1,2 +1,2 @@
-def ingest_marist():
+def ingest_marist(dry_run=False):
     return

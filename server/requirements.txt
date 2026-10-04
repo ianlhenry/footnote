@@ -1,3 +1,7 @@
 sqlite-vec>=0.1.6
 # Wheels exist only for Linux x86_64. macOS uses the stdlib sqlite3 module.
 pysqlite3-binary>=0.5.4; platform_system == "Linux" and platform_machine == "x86_64"
+# Apple's SQLite cannot load extensions. APSW bundles one that can, which
+# passage vectors need.
+apsw>=3.49
+lxml>=5

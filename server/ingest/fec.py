@@ -194,16 +194,19 @@ SOURCES = (
 )
 
 
-def ingest_fec():
+def ingest_fec(dry_run=False):
     # Read every file before dropping anything. A short row or a missing
     # column then leaves the previous load in place.
     loaded = [_read(source) for source in SOURCES]
+    summary = ", ".join(f"{len(source['rows'])} {source['table']}" for source in loaded)
+    if dry_run:
+        print(f"FEC would replace: {summary}.")
+        return
     with connect() as conn:
         for source in loaded:
             _create(conn, source)
         for source in loaded:
             _insert(conn, source)
-    summary = ", ".join(f"{len(source['rows'])} {source['table']}" for source in loaded)
     print(f"Loaded FEC rows: {summary}.")
 
 
