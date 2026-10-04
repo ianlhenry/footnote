@@ -51,6 +51,8 @@ export interface AnswerUsage {
   output_tokens: number;
   cache_read_input_tokens: number;
   cache_creation_input_tokens: number;
+  // Dollars at list price (api/pricing.ts), or null for an unpriced model.
+  cost_usd: number | null;
 }
 
 // What POST /api/chat/stream sends while the agent works, one server-sent

@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { Answer, AnswerUsage, Citation, DeclineReason, RetrievedItem, SourceRef, StreamEvent, ToolCall } from "./contract.ts";
 import { readOnlyDatabase } from "./db.ts";
+import { callCost } from "./pricing.ts";
 import { FEC_TOOLS, runFecTool, type ToolResult } from "./fec.ts";
 import { type Passage, searchPassages } from "./retrieval.ts";
 
@@ -53,7 +54,7 @@ function getClient(): Anthropic {
 }
 
 function usageOf(response: Anthropic.Message): AnswerUsage {
-  return {
+  const counts = {
     model: response.model,
     stop_reason: response.stop_reason,
     input_tokens: response.usage.input_tokens,
@@ -61,6 +62,7 @@ function usageOf(response: Anthropic.Message): AnswerUsage {
     cache_read_input_tokens: response.usage.cache_read_input_tokens ?? 0,
     cache_creation_input_tokens: response.usage.cache_creation_input_tokens ?? 0,
   };
+  return { ...counts, cost_usd: callCost(counts) };
 }
 
 const POLLSTERS: Record<string, string> = { pew: "Pew Research Center", marist: "Marist Poll" };

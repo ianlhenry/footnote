@@ -182,6 +182,11 @@ function fallbackLabel(ref: SourceRef): string {
   return ref.kind === "passage" ? "Pew or Marist report" : `FEC ${ref.table.replace(/^fec_/, "").replaceAll("_", " ")} · ${ref.id}`;
 }
 
+// Three decimals below a dime, so a typical answer reads $0.031, not $0.03.
+function dollars(value: number): string {
+  return `$${value.toFixed(value < 0.1 ? 3 : 2)}`;
+}
+
 function describeInput(input: unknown): string {
   if (!input || typeof input !== "object") return "";
   return Object.entries(input as Record<string, unknown>)
@@ -207,9 +212,14 @@ function Trace({ details, seconds, notes }: { details: AnswerDetails; seconds?: 
   const passages = details.retrieved.filter((item) => item.source.kind === "passage");
   const inputTokens = details.usage.reduce((sum, call) => sum + call.input_tokens + call.cache_read_input_tokens + call.cache_creation_input_tokens, 0);
   const outputTokens = details.usage.reduce((sum, call) => sum + call.output_tokens, 0);
+  // Null when any call's model has no price, or the answer predates costs.
+  const cost = details.usage.every((call) => typeof call.cost_usd === "number")
+    ? details.usage.reduce((sum, call) => sum + (call.cost_usd ?? 0), 0)
+    : null;
   const summary = [
     `${details.usage.length} Claude call${details.usage.length === 1 ? "" : "s"}`,
     `${details.tool_calls.length} tool call${details.tool_calls.length === 1 ? "" : "s"}`,
+    cost !== null ? dollars(cost) : null,
     seconds !== undefined ? `${seconds.toFixed(1)}s` : null,
   ].filter(Boolean);
   return (
@@ -242,6 +252,11 @@ function Trace({ details, seconds, notes }: { details: AnswerDetails; seconds?: 
         <li>
           <strong>Answered</strong> with {details.usage[0]?.model ?? "Claude"}, {inputTokens.toLocaleString()} tokens in,{" "}
           {outputTokens.toLocaleString()} out
+          <div className="tool-output">
+            {cost !== null
+              ? `Cost ${dollars(cost)} at list price for the Claude calls${details.usage.length > 1 ? ` (${details.usage.map((call) => dollars(call.cost_usd ?? 0)).join(" + ")})` : ""}. The Voyage search embedding is not included; it is a small fraction of a cent.`
+              : "Cost unknown: a model in this answer has no price on file."}
+          </div>
         </li>
       </ol>
     </details>

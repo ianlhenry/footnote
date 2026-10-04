@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { callCost } from "../api/pricing.ts";
 import path from "node:path";
 import { type AnswerRow, type GradeRow, METRICS, type MetricId } from "./grade.ts";
 import type { JudgeConfig } from "./judge.ts";
@@ -27,27 +28,10 @@ export interface RunInfo {
   errors: number;
 }
 
-// Prices per million tokens. Cache writes bill at 1.25× input and cache reads
-// at 0.1×. A model missing here makes the cost NaN rather than wrong.
-const PRICES: Record<string, { input: number; output: number }> = {
-  "claude-opus-5-5": { input: 4, output: 20 },
-  "claude-sonnet-5-5": { input: 2, output: 10 },
-  "claude-haiku-4-5": { input: 1, output: 5 },
-};
-
+// Prices live in api/pricing.ts. A model missing there makes a cost NaN
+// rather than wrong.
 export function agentCost(row: AnswerRow): number {
-  return row.answer.usage.reduce((sum, usage) => {
-    const price = PRICES[usage.model];
-    if (!price) return NaN;
-    return (
-      sum +
-      (usage.input_tokens * price.input +
-        usage.cache_creation_input_tokens * price.input * 1.25 +
-        usage.cache_read_input_tokens * price.input * 0.1 +
-        usage.output_tokens * price.output) /
-        1e6
-    );
-  }, 0);
+  return row.answer.usage.reduce((sum, usage) => sum + (callCost(usage) ?? NaN), 0);
 }
 
 // includeCached: count verdicts read from the cache at what they cost when
@@ -55,11 +39,7 @@ export function agentCost(row: AnswerRow): number {
 export function judgeCost(row: GradeRow, includeCached = false): number {
   return row.judge_usage
     .filter((usage) => includeCached || !usage.cached)
-    .reduce((sum, usage) => {
-      const price = PRICES[usage.model];
-      if (!price) return NaN;
-      return sum + (usage.input_tokens * price.input + usage.output_tokens * price.output) / 1e6;
-    }, 0);
+    .reduce((sum, usage) => sum + (callCost(usage) ?? NaN), 0);
 }
 
 export function readJsonl<T = unknown>(file: string): T[] {

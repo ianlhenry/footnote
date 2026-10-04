@@ -44,6 +44,8 @@ const AnswerSchema = z.object({
       output_tokens: z.number(),
       cache_read_input_tokens: z.number(),
       cache_creation_input_tokens: z.number(),
+      // Older runs predate cost_usd; the report recomputes cost from tokens.
+      cost_usd: z.number().nullable().default(null),
     }),
   ),
 });
