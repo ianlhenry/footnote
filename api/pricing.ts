@@ -15,7 +15,9 @@ export interface TokenCounts {
 }
 
 // Dollars for one Claude call. Cache writes bill at 1.25× the input price and
-// cache reads at 0.1×. Null for a model missing from the table, rather than
+// cache reads at 0.1×.
+// usage: the model and token counts for that call, including cache reads and writes.
+// Returns the cost in dollars, or null for a model missing from the table, rather than
 // a wrong number.
 export function callCost(usage: TokenCounts): number | null {
   const price = PRICES[usage.model];

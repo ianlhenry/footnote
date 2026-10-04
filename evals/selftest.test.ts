@@ -20,6 +20,10 @@ const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..")
 // Says a fact is supported when every figure in it is stated, and that the
 // answer declines when it says so. Good enough to test the code around it.
 const stubJudge = {
+  // Marks a fact supported when its figures are in the answer, or its text is when it lists no figures. Never marks a must_not rule broken. Treats "don't have" and "not loaded" as a decline.
+  // item: the case, for its facts and must_not rules.
+  // answer: the answer text.
+  // Returns the verdict and a zero-cost usage record marked cached.
   async facts(item: Case, answer: string) {
     return {
       verdict: {
@@ -41,6 +45,9 @@ const stubJudge = {
       usage: { model: "stub", input_tokens: 0, output_tokens: 0, cached: true },
     };
   },
+  // Marks a citation supported when the quote is not empty.
+  // citations: each claim and the quote offered for it. The claim is not read.
+  // Returns the verdict and a zero-cost usage record marked cached.
   async citations(citations: { claim: string; quote: string }[]) {
     return {
       verdict: {
@@ -55,6 +62,10 @@ const stubJudge = {
   },
 } as unknown as Judge;
 
+// Build a stored answer for one case, filling in the fields a test leaves out.
+// item: the case, for its id and question.
+// answer: the text, plus any status, citations, or retrieved items the test sets.
+// Returns the row at rep 0, with empty lists where the test said nothing.
 function answerRow(item: Case, answer: Partial<Answer> & { text: string }): AnswerRow {
   return {
     case_id: item.id,
@@ -176,11 +187,17 @@ test("refusal is graded from status, and the text check separately", async () =>
 
 test("retrieval counts expected documents and FEC records", async () => {
   const item = cases.find((c) => c.id === "iowa-poll-and-money")!;
+  // One retrieved passage pointing at a document.
+  // url: the document URL.
+  // Returns the item with a fixed passage id, a high score, and an empty body.
   const passage = (url: string) => ({
     source: { kind: "passage" as const, passage_id: 1, document_url: url },
     score: 0.9,
     text: "",
   });
+  // One retrieved FEC candidate summary.
+  // id: the candidate id.
+  // Returns the item in fec_candidate_summary, with no score and an empty body.
   const fec = (id: string) => ({
     source: { kind: "fec" as const, table: "fec_candidate_summary", id },
     score: null,
@@ -294,6 +311,9 @@ test("the runner stores answers, and records failures without scoring them", asy
   const { port } = server.address() as { port: number };
   const runsDir = fs.mkdtempSync(path.join(os.tmpdir(), "papertrail-eval-"));
   try {
+    // Run the eval CLI against the fake server, writing into this test's run directory.
+    // args: the arguments after evals/cli.ts.
+    // Returns the exit status and the combined stdout and stderr.
     const cli = (...args: string[]) =>
       new Promise<{ status: number | null; output: string }>((resolve) => {
         // spawnSync would block this process's event loop, and with it the fake server.
@@ -371,6 +391,10 @@ test("plan calls nothing and run refuses to spend without --yes", () => {
   assert.match(result.stderr, /--yes/);
 });
 
+// Start the eval CLI in a child process so the fake server on this process keeps running.
+// args: the arguments after evals/cli.ts.
+// runsDir: where the child should write runs.
+// Returns the child process.
 function spawnCli(args: string[], runsDir: string) {
   return spawn("npx", ["tsx", "evals/cli.ts", ...args], {
     cwd: ROOT,

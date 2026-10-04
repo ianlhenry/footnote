@@ -45,6 +45,9 @@ const SCALES: Record<string, number> = {
 const NUMBER =
   /(\d{1,3}(?:,\d{3})+|\d+)(\.\d+)?\s*(%|percent\b|percentage points?\b|thousand\b|million\b|billion\b|mn\b|bn\b|[kmb]\b)?/gi;
 
+// Pull every number out of text, including number words and amounts with a scale word.
+// text: an answer, a fact, or citation claims.
+// Returns each figure as a plain value, whether it was written as a percent, and the matched text.
 export function findNumbers(text: string): FoundNumber[] {
   const found: FoundNumber[] = [];
   for (const match of text.matchAll(NUMBER)) {
@@ -80,6 +83,8 @@ const ISO_DATE = /\b\d{4}-\d{2}-\d{2}\b/g;
 // The figures in an answer that a citation should back: numbers written in
 // digits, leaving out dates, bare years such as "2026", and number words
 // such as "one".
+// text: the answer to scan.
+// Returns those figures, scaled the same way findNumbers scales them.
 export function findFigures(text: string): FoundNumber[] {
   const withoutDates = text.replace(DATE, " ").replace(ISO_DATE, " ");
   return findNumbers(withoutDates).filter(
@@ -87,8 +92,11 @@ export function findFigures(text: string): FoundNumber[] {
   );
 }
 
-// Whether the answer states the expected figure. Percentages may be written
+// Whether one found number is the expected figure. Percentages may be written
 // with or without the sign ("50-42"); dollars and counts may be rounded.
+// expected: the labeled figure and which tolerance applies.
+// found: one number taken from the text.
+// Returns true when the two are close enough for that kind. A percent does not count as dollars or a count.
 export function matches(expected: ExpectedValue, found: FoundNumber): boolean {
   const { n, kind } = expected;
   switch (kind) {
@@ -103,6 +111,10 @@ export function matches(expected: ExpectedValue, found: FoundNumber): boolean {
   }
 }
 
+// Whether the text contains the expected figure, using the same tolerances as matches.
+// expected: the labeled figure and which tolerance applies.
+// text: the answer or fact to scan. Digits, scales, and number words all count; dates are not removed.
+// Returns true when any number in the text matches.
 export function stated(expected: ExpectedValue, text: string): boolean {
   return findNumbers(text).some((found) => matches(expected, found));
 }

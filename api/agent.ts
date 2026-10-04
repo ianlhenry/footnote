@@ -63,6 +63,8 @@ const DECLINE_TEXT: Record<DeclineReason, string> = {
 };
 
 export class MissingKeyError extends Error {
+  // Create the error raised when a question is asked with no Anthropic key.
+  // Sets the message to say ANTHROPIC_API_KEY is not set.
   constructor() {
     super("ANTHROPIC_API_KEY is not set");
   }
@@ -70,6 +72,8 @@ export class MissingKeyError extends Error {
 
 let client: Anthropic | undefined;
 
+// Return the shared Anthropic client, creating it from the API key on first use.
+// Throws MissingKeyError when ANTHROPIC_API_KEY is unset or blank.
 function getClient(): Anthropic {
   const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
   if (!apiKey) {
@@ -80,6 +84,9 @@ function getClient(): Anthropic {
   return client;
 }
 
+// Turn one Claude reply's token counts into the usage stored with an answer.
+// response: the message Claude returned, including its model and token counts.
+// Returns those counts plus the dollar cost of the call.
 function usageOf(response: Anthropic.Message): AnswerUsage {
   const counts = {
     model: response.model,
@@ -97,6 +104,8 @@ const POLLSTERS: Record<string, string> = { pew: "Pew Research Center", marist: 
 
 // The passage, then the surveys its page reports on, as separate blocks so a
 // citation of a sample size or margin points at the survey line alone.
+// passage: one retrieved survey passage, including its document and survey lines.
+// Returns a citable result whose title names the pollster and publish date.
 function passageResult(passage: Passage): ToolResult {
   const ref = {
     kind: "passage" as const,
@@ -124,6 +133,9 @@ function passageResult(passage: Passage): ToolResult {
   };
 }
 
+// Wrap a tool result as a Claude search-result block with citations turned on.
+// result: a passage or FEC record already shaped for citation.
+// Returns the block Claude cites by its position in the conversation.
 function searchResultBlock(result: ToolResult): Anthropic.SearchResultBlockParam {
   return {
     type: "search_result",
@@ -134,6 +146,10 @@ function searchResultBlock(result: ToolResult): Anthropic.SearchResultBlockParam
   };
 }
 
+// Answer a question from the closest survey passages and any FEC tools Claude calls.
+// question: what the user asked. It is embedded for the passage search and sent to Claude.
+// Returns the reply, whether it was answered or refused, citations, retrieved records,
+// tool calls, and token usage for each Claude call.
 export async function answer(question: string): Promise<Answer> {
   const passages = await searchPassages(question, TOP_K);
 
@@ -264,6 +280,8 @@ export async function answer(question: string): Promise<Answer> {
 }
 
 // "FEC candidate summary · S6IA00314" for an FEC record.
+// ref: the source a citation points at, a passage or one FEC row.
+// Returns "Survey report" for a passage, otherwise the FEC table name and record id.
 function labelFor(ref: SourceRef): string {
   if (ref.kind === "passage") {
     return "Survey report";
@@ -274,6 +292,9 @@ function labelFor(ref: SourceRef): string {
 
 // One item per record a result drew on. A passage's text and survey line
 // are one item; an FEC result has one per table row.
+// result: a passage or FEC search result, possibly with several text blocks.
+// score: how close a passage was to the question, or null for an FEC result.
+// Returns those records, joining blocks that share a source into one item.
 function retrievedItems(result: ToolResult, score: number | null): RetrievedItem[] {
   const items: RetrievedItem[] = [];
   for (const block of result.blocks) {

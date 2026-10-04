@@ -74,6 +74,8 @@ export type CitationVerdict = z.infer<typeof CitationVerdict>;
 // Thrown in offline mode when a verdict is not cached, so a plan can count
 // the judge calls a real run would make without making any.
 export class JudgeMiss extends Error {
+  // Build the error raised when a verdict is not in the cache.
+  // Writes the fixed message "judge verdict not cached".
   constructor() {
     super("judge verdict not cached");
   }
@@ -81,6 +83,10 @@ export class JudgeMiss extends Error {
 
 export class Judge {
   private client: Anthropic | undefined;
+  // Keep the model settings, and whether a cache miss should call the model.
+  // config: the model name and effort level.
+  // offline: when true, a cache miss throws JudgeMiss instead of calling Anthropic. Defaults to calling the model.
+  // Writes both onto the instance.
   constructor(
     readonly config: JudgeConfig,
     readonly offline = false,
@@ -88,6 +94,9 @@ export class Judge {
 
   // Whether each labeled fact is in the answer, whether any must_not happened,
   // and whether the answer declines to answer the question.
+  // item: the case, for the question, the expected facts, and the must_not rules.
+  // answer: the answer text to grade.
+  // Returns the verdict and the token usage, served from the cache when this prompt was graded before.
   async facts(item: Case, answer: string): Promise<{ verdict: FactsVerdict; usage: JudgeUsage }> {
     const facts = item.facts.map((fact, index) => `${index}. ${fact.text}`).join("\n") || "(none)";
     const mustNot = item.must_not.map((rule, index) => `${index}. ${rule}`).join("\n") || "(none)";
@@ -115,6 +124,8 @@ Finally, say whether the answer declines: it gives none of the information the q
 
   // Whether each citation's quoted source text supports the claim it is
   // attached to.
+  // citations: each claim and the quote offered for it.
+  // Returns the verdict and the token usage, served from the cache when this prompt was graded before.
   async citations(
     citations: { claim: string; quote: string }[],
   ): Promise<{ verdict: CitationVerdict; usage: JudgeUsage }> {
@@ -130,6 +141,11 @@ For each citation, say whether the quoted source text, on its own, supports the 
     return this.ask("citations", prompt, CitationVerdict);
   }
 
+  // Ask the model for one verdict, or reuse the cached one when the prompt, its version, and the model settings match.
+  // kind: facts or citations. It selects the prompt version stored in the cache key.
+  // prompt: the grading instructions plus the answer or the citations.
+  // schema: the shape the model output must match.
+  // Returns the parsed verdict and token usage. Writes a cache file for a verdict that was not cached. Throws JudgeMiss when offline and uncached, and throws when the served model, the stop reason, or the output is unusable.
   private async ask<T extends z.ZodType>(
     kind: JudgeKind,
     prompt: string,

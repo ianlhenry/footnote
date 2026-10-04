@@ -108,6 +108,12 @@ export const FEC_TOOLS: Anthropic.Tool[] = [
   },
 ];
 
+// Run one FEC tool Claude asked for.
+// conn: the database holding the FEC tables.
+// name: which tool: search_candidates, rank_candidates, or search_committees.
+// input: the arguments Claude supplied for that tool.
+// Returns the matching records as citable results.
+// Throws when the tool name is unknown or the arguments are missing or invalid.
 export function runFecTool(
   conn: DatabaseSync,
   name: string,
@@ -155,6 +161,11 @@ const CANDIDATE_SELECT = `
   LEFT JOIN fec_candidate_summary s ON s.CAND_ID = c.CAND_ID
   LEFT JOIN fec_committee m ON m.CMTE_ID = c.CAND_PCC`;
 
+// Add candidate filters for state, office, and party when the tool input includes them.
+// input: the tool arguments, read for state, office, and party.
+// where: SQL conditions being built; matching clauses are appended here.
+// params: bound values for those clauses, appended in the same order.
+// Writes the new clauses and values onto where and params.
 function filters(input: Record<string, unknown>, where: string[], params: string[]) {
   const state = text(input.state)?.toUpperCase();
   const office = text(input.office)?.toUpperCase();
@@ -174,6 +185,11 @@ function filters(input: Record<string, unknown>, where: string[], params: string
   }
 }
 
+// Find federal candidates whose filed name and filters match the tool input.
+// conn: the database holding candidates and their 2026-cycle summaries.
+// input: optional name words, plus state, office, and party.
+// Returns up to ten candidates, highest receipts first, each as a citable result.
+// Throws when no name, state, office, or party was given.
 function searchCandidates(conn: DatabaseSync, input: Record<string, unknown>): ToolResult[] {
   const words = nameWords(text(input.name));
   const where: string[] = [];
@@ -201,6 +217,11 @@ function searchCandidates(conn: DatabaseSync, input: Record<string, unknown>): T
     .map(candidateResult);
 }
 
+// List the candidates with the largest 2026-cycle total of one kind.
+// conn: the database holding the candidate summary.
+// input: which total to rank by, plus optional office, state, party, and how many.
+// Returns that many candidates, largest total first, at most twenty.
+// Throws when by is missing or is not a known total.
 function rankCandidates(conn: DatabaseSync, input: Record<string, unknown>): ToolResult[] {
   const by = text(input.by) as keyof typeof MONEY_FIELDS | undefined;
   if (!by || !(by in MONEY_FIELDS)) {
@@ -221,6 +242,9 @@ function rankCandidates(conn: DatabaseSync, input: Record<string, unknown>): Too
   return rows.map(candidateResult);
 }
 
+// Turn one candidate row into the text blocks Claude can cite.
+// row: a candidate joined to its 2026-cycle summary and principal committee.
+// Returns the candidate record, its money totals when the summary has them, and its committee.
 function candidateResult(row: CandidateRow): ToolResult {
   const office = OFFICES[row.CAND_OFFICE ?? ""] ?? row.CAND_OFFICE ?? "unknown office";
   const seat =
@@ -309,6 +333,11 @@ const COMMITTEE_TYPES: Record<string, string> = {
   C: "communication cost filer",
 };
 
+// Find committees by filed name or committee ID.
+// conn: the database holding committees and their 2026-cycle PAC summaries.
+// input: a committee name, a committee ID, or both.
+// Returns up to ten committees, highest receipts first, each as a citable result.
+// Throws when neither a name nor an ID was given.
 function searchCommittees(conn: DatabaseSync, input: Record<string, unknown>): ToolResult[] {
   const id = text(input.committee_id)?.toUpperCase();
   const words = nameWords(text(input.name));
@@ -373,10 +402,16 @@ function searchCommittees(conn: DatabaseSync, input: Record<string, unknown>): T
     });
 }
 
+// Read an optional tool argument as trimmed text.
+// value: one field from the tool input.
+// Returns the trimmed string, or undefined when the field is missing or blank.
 function text(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
+// Split a name into the words used to match a filed FEC name.
+// name: the name the tool was given, or undefined when the tool omitted it.
+// Returns the uppercased words longer than one character.
 function nameWords(name: string | undefined): string[] {
   return (name ?? "")
     .toUpperCase()
@@ -385,11 +420,17 @@ function nameWords(name: string | undefined): string[] {
 }
 
 // Each query word must start a word of the filed name.
+// filed: the name as the FEC recorded it.
+// words: the query words, already split and uppercased.
+// Returns whether every query word starts some word of the filed name.
 function nameMatches(filed: string, words: string[]): boolean {
   const parts = filed.toUpperCase().split(/[^A-Z0-9']+/);
   return words.every((word) => parts.some((part) => part.startsWith(word)));
 }
 
+// Format a dollar amount for the text shown to Claude.
+// value: a money total from an FEC summary, or null when the file left it blank.
+// Returns a USD string, or "not reported" when the total is missing.
 function usd(value: number | null): string {
   return value === null
     ? "not reported"
