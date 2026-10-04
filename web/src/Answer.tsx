@@ -92,30 +92,7 @@ function markdownComponents(id: string): Components {
   };
 }
 
-// The reply as it streams in. Citation markers are added once it is done,
-// since a marker goes after the claim it supports.
-export function StreamingText({ text }: { text: string }) {
-  return (
-    <div className="answer-text">
-      <Markdown remarkPlugins={[remarkGfm]}>{text}</Markdown>
-    </div>
-  );
-}
-
-export function AnswerView({
-  id,
-  text,
-  details,
-  seconds,
-  notes = [],
-}: {
-  id: string;
-  text: string;
-  details: AnswerDetails;
-  seconds?: number;
-  // Text Claude wrote before calling tools, which is not part of the answer.
-  notes?: string[];
-}) {
+export function AnswerView({ id, text, details, seconds }: { id: string; text: string; details: AnswerDetails; seconds?: number }) {
   const sources = numberSources(details.citations);
   return (
     <div className="answer">
@@ -153,7 +130,7 @@ export function AnswerView({
           </ol>
         </section>
       )}
-      <Trace details={details} seconds={seconds} notes={notes} />
+      <Trace details={details} seconds={seconds} />
     </div>
   );
 }
@@ -208,7 +185,7 @@ function describeOutput(call: ToolCall): string {
 
 // What the agent looked at and did, in order: the passages retrieved for the
 // question, then each tool call Claude made.
-function Trace({ details, seconds, notes }: { details: AnswerDetails; seconds?: number; notes: string[] }) {
+function Trace({ details, seconds }: { details: AnswerDetails; seconds?: number }) {
   const passages = details.retrieved.filter((item) => item.source.kind === "passage");
   const inputTokens = details.usage.reduce((sum, call) => sum + call.input_tokens + call.cache_read_input_tokens + call.cache_creation_input_tokens, 0);
   const outputTokens = details.usage.reduce((sum, call) => sum + call.output_tokens, 0);
@@ -237,11 +214,6 @@ function Trace({ details, seconds, notes }: { details: AnswerDetails; seconds?: 
             ))}
           </ul>
         </li>
-        {notes.map((note, index) => (
-          <li key={`note-${index}`}>
-            <strong>Note</strong> <span className="tool-output">{note}</span>
-          </li>
-        ))}
         {details.tool_calls.map((call, index) => (
           <li key={index}>
             <strong>{call.name === "decline" ? "Declined" : call.name}</strong>

@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { Answer, AnswerUsage, Citation, DeclineReason, RetrievedItem, SourceRef, StreamEvent, ToolCall } from "./contract.ts";
+import type { Answer, AnswerUsage, Citation, DeclineReason, RetrievedItem, SourceRef, ToolCall } from "./contract.ts";
 import { readOnlyDatabase } from "./db.ts";
 import { callCost } from "./pricing.ts";
 import { FEC_TOOLS, runFecTool, type ToolResult } from "./fec.ts";
@@ -106,21 +106,8 @@ function searchResultBlock(result: ToolResult): Anthropic.SearchResultBlockParam
   };
 }
 
-// Progress the agent reports while it works. The server adds done and error.
-export type AgentEvent = Exclude<StreamEvent, { type: "done" } | { type: "error" }>;
-
-const TOOL_STATUS: Record<string, string> = {
-  search_candidates: "Looking up FEC candidates",
-  rank_candidates: "Ranking FEC candidates",
-  search_committees: "Looking up FEC committees",
-};
-
-// onEvent receives progress as it happens. The returned answer is the same
-// whether or not anyone listens.
-export async function answer(question: string, onEvent: (event: AgentEvent) => void = () => {}): Promise<Answer> {
-  onEvent({ type: "status", message: "Searching Pew and Marist reports" });
+export async function answer(question: string): Promise<Answer> {
   const passages = await searchPassages(question, TOP_K);
-  onEvent({ type: "status", message: `Reading ${passages.length} passages` });
   // Every search_result block in the conversation, in the order Claude sees
   // them, since a citation names its result by that position.
   const results: ToolResult[] = passages.map(passageResult);
@@ -139,7 +126,7 @@ export async function answer(question: string, onEvent: (event: AgentEvent) => v
   let declineReason: DeclineReason | null = null;
   for (let turn = 1; turn <= MAX_TURNS; turn++) {
     const last = turn === MAX_TURNS;
-    const stream = getClient().messages.stream({
+    response = await getClient().messages.create({
       model: MODEL,
       max_tokens: MAX_TOKENS,
       system: SYSTEM,
@@ -148,11 +135,7 @@ export async function answer(question: string, onEvent: (event: AgentEvent) => v
       ...(last ? { tool_choice: { type: "none" as const } } : {}),
       messages,
     });
-    stream.on("text", (text) => onEvent({ type: "text", turn, text }));
-    // The same complete message messages.create would have returned.
-    response = await stream.finalMessage();
     usage.push(usageOf(response));
-    onEvent({ type: "turn_end", turn, tool_use: response.stop_reason === "tool_use" });
     if (response.stop_reason !== "tool_use") break;
 
     const decline = response.content.find(
@@ -170,7 +153,6 @@ export async function answer(question: string, onEvent: (event: AgentEvent) => v
     for (const block of response.content) {
       if (block.type !== "tool_use") continue;
       const input = (block.input ?? {}) as Record<string, unknown>;
-      onEvent({ type: "status", message: TOOL_STATUS[block.name] ?? `Calling ${block.name}` });
       try {
         const found = runFecTool(readOnlyDatabase(), block.name, input);
         results.push(...found);
@@ -187,7 +169,6 @@ export async function answer(question: string, onEvent: (event: AgentEvent) => v
       }
     }
     messages.push({ role: "user", content: toolResults });
-    onEvent({ type: "status", message: "Writing the answer" });
   }
   if (!response) throw new Error("no response");
 

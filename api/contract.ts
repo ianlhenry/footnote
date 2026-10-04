@@ -55,21 +55,6 @@ export interface AnswerUsage {
   cost_usd: number | null;
 }
 
-// What POST /api/chat/stream sends while the agent works, one server-sent
-// event each, named by type.
-// status: what the agent is doing, such as searching reports.
-// text: the next piece of Claude's reply in that turn.
-// turn_end: the turn is over. If it ended in tool calls, its text was a note
-//   before the calls, not part of the answer.
-// done: the finished answer, identical to what POST /api/chat returns.
-// error: the request failed; no done follows.
-export type StreamEvent =
-  | { type: "status"; message: string }
-  | { type: "text"; turn: number; text: string }
-  | { type: "turn_end"; turn: number; tool_use: boolean }
-  | { type: "done"; answer: Answer }
-  | { type: "error"; detail: string };
-
 export interface Answer {
   text: string;
   status: AnswerStatus;
