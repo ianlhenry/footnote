@@ -1,0 +1,24 @@
+{
+  "name": "papertrail-llm",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "dev": "bash scripts/dev.sh",
+    "dev:api": "tsx watch api/server.ts",
+    "dev:web": "npm run dev --prefix web"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "concurrently": "^9.2.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.3",
+    "hono": "^4.13.13",
+    "sqlite-vec": "^0.1.9"
+  }
+}

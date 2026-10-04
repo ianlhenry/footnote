@@ -1,0 +1,112 @@
+:root {
+  color: #1c1b19;
+  background: #f4f1ea;
+  font-family: "Iowan Old Style", Palatino, Georgia, serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 1rem;
+}
+
+.header {
+  border-bottom: 1px solid #d9d3c7;
+  margin-bottom: 1rem;
+}
+
+.header h1 {
+  margin: 0 0 0.75rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.messages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.message {
+  margin: 0 0 1rem;
+}
+
+.message .role {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-family: system-ui, sans-serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6d675e;
+}
+
+.message p {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.45;
+}
+
+.message.user p {
+  color: #1c1b19;
+}
+
+.message.assistant p {
+  color: #3d4a3e;
+}
+
+.composer {
+  display: flex;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #d9d3c7;
+}
+
+.composer input {
+  flex: 1;
+  font: inherit;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #cfc8bb;
+  border-radius: 0.25rem;
+  background: #fffdf8;
+}
+
+.composer button {
+  font-family: system-ui, sans-serif;
+  padding: 0.65rem 1rem;
+  border: 0;
+  border-radius: 0.25rem;
+  background: #243126;
+  color: #f4f1ea;
+  cursor: pointer;
+}
+
+.composer button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
