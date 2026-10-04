@@ -33,7 +33,7 @@ const AnswerSchema = z.object({
   status: z.enum(["answered", "refused"]),
   // Older runs predate decline_reason.
   decline_reason: z.enum(["not_loaded", "out_of_scope", "opinion"]).nullable().default(null),
-  citations: z.array(z.object({ claim: z.string(), source: SourceRef, quote: z.string() })),
+  citations: z.array(z.object({ claim: z.string(), source: SourceRef, title: z.string().default(""), label: z.string().default(""), quote: z.string() })),
   retrieved: z.array(z.object({ source: SourceRef, score: z.number().nullable(), text: z.string() })),
   tool_calls: z.array(z.object({ name: z.string(), input: z.unknown(), output: z.unknown() })),
   usage: z.array(

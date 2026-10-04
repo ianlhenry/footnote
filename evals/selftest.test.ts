@@ -146,8 +146,8 @@ test("citation coverage, quote fidelity, and support", async () => {
     text: "Talarico has 50% and Paxton 44% in a September 2026 poll.",
     retrieved: [{ source, score: 0.8, text: "Paxton (R): 44%\nTalarico (D): 50%" }],
     citations: [
-      { claim: "Talarico has 50%", source, quote: "Talarico (D): 50%" },
-      { claim: "Paxton 44%", source, quote: "Paxton (R): 41%" },
+      { claim: "Talarico has 50%", source, title: "Texas poll", label: "Marist Poll · state release", quote: "Talarico (D): 50%" },
+      { claim: "Paxton 44%", source, title: "Texas poll", label: "Marist Poll · state release", quote: "Paxton (R): 41%" },
     ],
   });
   const graded = await grade(item, row, { retrieval: true, citations: true }, stubJudge);

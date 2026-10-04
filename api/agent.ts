@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { Answer, AnswerUsage, Citation, DeclineReason, RetrievedItem, ToolCall } from "./contract.ts";
+import type { Answer, AnswerUsage, Citation, DeclineReason, RetrievedItem, SourceRef, ToolCall } from "./contract.ts";
 import { readOnlyDatabase } from "./db.ts";
 import { FEC_TOOLS, runFecTool, type ToolResult } from "./fec.ts";
 import { type Passage, searchPassages } from "./retrieval.ts";
@@ -74,6 +74,10 @@ function passageResult(passage: Passage): ToolResult {
   const pollster = POLLSTERS[passage.source] ?? passage.source;
   return {
     title: `${passage.title} (${pollster}${passage.published_on ? `, published ${passage.published_on}` : ""})`,
+    name: passage.title,
+    label: [pollster, passage.doc_type, passage.published_on ? `published ${passage.published_on}` : null]
+      .filter(Boolean)
+      .join(" · "),
     source: passage.document_url,
     blocks,
   };
@@ -94,7 +98,11 @@ export async function answer(question: string): Promise<Answer> {
   // Every search_result block in the conversation, in the order Claude sees
   // them, since a citation names its result by that position.
   const results: ToolResult[] = passages.map(passageResult);
-  const scores = new Map<ToolResult, number>(results.map((result, index) => [result, 1 - passages[index].distance]));
+  // sqlite-vec returns Euclidean distance. Voyage vectors have unit length,
+  // so cosine similarity is 1 - distance² / 2.
+  const scores = new Map<ToolResult, number>(
+    results.map((result, index) => [result, 1 - passages[index].distance ** 2 / 2]),
+  );
   const toolCalls: ToolCall[] = [];
   const usage: AnswerUsage[] = [];
   const messages: Anthropic.MessageParam[] = [
@@ -160,9 +168,16 @@ export async function answer(question: string): Promise<Answer> {
     text += block.text;
     for (const citation of block.citations ?? []) {
       if (citation.type !== "search_result_location") continue;
-      const cited = results[citation.search_result_index]?.blocks[citation.start_block_index];
+      const result = results[citation.search_result_index];
+      const cited = result?.blocks[citation.start_block_index];
       if (!cited) continue;
-      citations.push({ claim: block.text.trim(), source: cited.ref, quote: citation.cited_text });
+      citations.push({
+        claim: block.text.trim(),
+        source: cited.ref,
+        title: result.name ?? result.title,
+        label: result.label ?? labelFor(cited.ref),
+        quote: citation.cited_text,
+      });
     }
   }
 
@@ -175,6 +190,12 @@ export async function answer(question: string): Promise<Answer> {
     tool_calls: toolCalls,
     usage,
   };
+}
+
+// "FEC candidate summary · S6IA00314" for an FEC record.
+function labelFor(ref: SourceRef): string {
+  if (ref.kind === "passage") return "Survey report";
+  return `FEC ${ref.table.replace(/^fec_/, "").replaceAll("_", " ")} · ${ref.id}`;
 }
 
 // One item per record a result drew on. A passage's text and survey line

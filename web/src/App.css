@@ -1,7 +1,7 @@
 :root {
   color: #1c1b19;
   background: #f4f1ea;
-  font-family: "Iowan Old Style", Palatino, Georgia, serif;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 * {
@@ -16,7 +16,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  max-width: 42rem;
+  max-width: 72rem;
   margin: 0 auto;
   padding: 1.5rem 1.25rem 1rem;
 }
@@ -34,11 +34,24 @@ body {
 }
 
 .messages {
+  /* The positioning context for scrolling an answer to the top. */
+  position: relative;
   list-style: none;
   margin: 0;
   padding: 0;
   flex: 1;
   overflow-y: auto;
+}
+
+/* Long lines are hard to read, so prose stops short of the full width.
+   Tables can use all of it. */
+.message > p,
+.answer-text p,
+.answer-text ul,
+.answer-text ol,
+.sources,
+.trace {
+  max-width: 48rem;
 }
 
 .message {
@@ -48,7 +61,6 @@ body {
 .message .role {
   display: block;
   margin-bottom: 0.25rem;
-  font-family: system-ui, sans-serif;
   font-size: 0.75rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -86,7 +98,6 @@ body {
 }
 
 .composer button {
-  font-family: system-ui, sans-serif;
   padding: 0.65rem 1rem;
   border: 0;
   border-radius: 0.25rem;
@@ -109,4 +120,257 @@ body {
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
   border: 0;
+}
+
+.message.error p {
+  color: #8a2f22;
+}
+
+/* While the agent works */
+.thinking {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: #6d675e;
+  font-style: italic;
+}
+
+.spinner {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  border: 2px solid #d9d3c7;
+  border-top-color: #243126;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 2.4s;
+  }
+}
+
+/* Answers */
+.answer-text {
+  line-height: 1.45;
+  color: #3d4a3e;
+}
+
+.answer-text > :first-child {
+  margin-top: 0;
+}
+
+.answer-text > :last-child {
+  margin-bottom: 0;
+}
+
+.answer-text p,
+.answer-text ul,
+.answer-text ol {
+  margin: 0 0 0.6rem;
+}
+
+.answer-text ul,
+.answer-text ol {
+  padding-left: 1.3rem;
+}
+
+.answer-text li {
+  margin-bottom: 0.25rem;
+}
+
+.answer-text strong {
+  color: #1c1b19;
+}
+
+.answer-text table {
+  border-collapse: collapse;
+  margin: 0 0 0.6rem;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.answer-text th,
+.answer-text td {
+  padding: 0.3rem 0.6rem;
+  border-bottom: 1px solid #d9d3c7;
+  text-align: left;
+}
+
+.answer-text th {
+  border-bottom-color: #a39d90;
+  font-weight: 600;
+}
+
+/* Wide tables scroll inside the answer rather than widening the page. */
+.answer-text {
+  overflow-x: auto;
+}
+
+.cite,
+.source-number {
+  /* One fixed box for markers in the answer and numbers in the source list. */
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.15rem;
+  min-width: 1.15rem;
+  padding: 0 0.3rem;
+  border-radius: 0.2rem;
+  background: #e4ded1;
+  color: #243126;
+  font-size: 0.68rem;
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none;
+}
+
+/* Centered on the line of text rather than raised like a superscript. */
+.cite {
+  margin-left: 0.2rem;
+  vertical-align: middle;
+}
+
+.cite:hover,
+.cite:focus-visible {
+  background: #243126;
+  color: #f4f1ea;
+}
+
+.badge {
+  display: inline-block;
+  margin-bottom: 0.4rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+}
+
+.badge.declined {
+  background: #f1e3c8;
+  color: #6b4a12;
+}
+
+.sources,
+.trace {
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  color: #4b4740;
+}
+
+.sources h2 {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6d675e;
+}
+
+.sources ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sources li {
+  display: flex;
+  /* Line the number up with the title's first line, without stretching it. */
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+  scroll-margin-top: 1rem;
+}
+
+/* Matches the markers in the answer text. */
+.source-number {
+  flex: none;
+}
+
+.source-body {
+  min-width: 0;
+}
+
+.sources li:target {
+  background: #ece6d8;
+  outline: 0.25rem solid #ece6d8;
+  border-radius: 0.15rem;
+}
+
+.sources a {
+  color: #243126;
+}
+
+.source-kind {
+  display: block;
+  color: #8a8478;
+  font-size: 0.72rem;
+}
+
+.sources blockquote {
+  margin: 0.25rem 0 0;
+  padding-left: 0.6rem;
+  border-left: 2px solid #d9d3c7;
+}
+
+.quote-text {
+  display: block;
+  white-space: pre-wrap;
+}
+
+.sources blockquote.clamped .quote-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+}
+
+.quote-toggle {
+  margin-top: 0.15rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #6d675e;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.trace summary {
+  cursor: pointer;
+  color: #6d675e;
+}
+
+.trace ol {
+  margin: 0.4rem 0 0;
+  padding-left: 1.4rem;
+}
+
+.trace li {
+  margin-bottom: 0.3rem;
+}
+
+.trace ul {
+  margin: 0.2rem 0 0;
+  padding-left: 1rem;
+  color: #6d675e;
+}
+
+.trace .score {
+  margin-left: 0.4rem;
+  color: #a39d90;
+  font-variant-numeric: tabular-nums;
+}
+
+.tool-output {
+  color: #6d675e;
 }

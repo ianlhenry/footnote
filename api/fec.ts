@@ -12,7 +12,12 @@ export interface ResultBlock {
 }
 
 export interface ToolResult {
+  // What Claude sees as the result's title.
   title: string;
+  // For display: the document's own title and a short description of the
+  // source. FEC results leave these out and are labeled per record.
+  name?: string;
+  label?: string;
   // A link to the record on fec.gov.
   source: string;
   blocks: ResultBlock[];

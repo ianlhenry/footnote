@@ -1,7 +1,7 @@
 // The shape of one answer from /api/chat. The UI reads the text; the eval in
 // evals/ reads the rest. Fields the agent cannot fill yet are empty lists.
 
-// Where a claim or a retrieved item came from: one passage of a poll article,
+// Where a claim or a retrieved item came from: one passage of a Pew or Marist report,
 // or one FEC record identified by its table and primary id (CAND_ID, CMTE_ID,
 // LINKAGE_ID, or TRAN_ID for independent expenditures).
 export type SourceRef =
@@ -22,6 +22,11 @@ export interface Citation {
   // The sentence or figure in the answer that this source supports.
   claim: string;
   source: SourceRef;
+  // The source's display name, such as a report title or an FEC record.
+  title: string;
+  // What kind of source it is, such as "Marist Poll · state release" or
+  // "FEC candidate summary · S6IA00314".
+  label: string;
   // The text of the source that supports the claim, copied exactly.
   quote: string;
 }

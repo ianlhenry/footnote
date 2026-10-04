@@ -23,6 +23,8 @@ export interface Passage {
   document_url: string;
   title: string;
   source: string;
+  // The publisher's kind of document, such as "state release" or "short read".
+  doc_type: string | null;
   published_on: string | null;
   // One line per survey the page reports on: field dates, sample, margin.
   surveys: string[];
@@ -43,7 +45,7 @@ export async function searchPassages(question: string, k: number): Promise<Passa
   const rows = conn
     .prepare(
       `SELECT passages.id, passages.text, passages.document_id,
-              documents.url, documents.title, documents.source, documents.published_on
+              documents.url, documents.title, documents.source, documents.doc_type, documents.published_on
        FROM passages JOIN documents ON documents.id = passages.document_id
        WHERE passages.id IN (${marks})`,
     )
@@ -54,6 +56,7 @@ export async function searchPassages(question: string, k: number): Promise<Passa
     url: string;
     title: string;
     source: string;
+    doc_type: string | null;
     published_on: string | null;
   }[];
   const byId = new Map(rows.map((row) => [row.id, row]));
@@ -70,6 +73,7 @@ export async function searchPassages(question: string, k: number): Promise<Passa
         document_url: row.url,
         title: row.title,
         source: row.source,
+        doc_type: row.doc_type,
         published_on: row.published_on,
         surveys: surveys.get(row.document_id) ?? [],
       },
