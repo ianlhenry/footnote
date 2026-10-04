@@ -50,7 +50,7 @@ function answerRow(item: Case, answer: Partial<Answer> & { text: string }): Answ
     question: item.question,
     latency_s: 1,
     retries: 0,
-    answer: { status: "answered", citations: [], retrieved: [], tool_calls: [], usage: [], ...answer },
+    answer: { status: "answered", decline_reason: null, citations: [], retrieved: [], tool_calls: [], usage: [], ...answer },
   };
 }
 

@@ -13,6 +13,11 @@ export type SourceRef =
 // of scope. A refusal may still point to related data that is loaded.
 export type AnswerStatus = "answered" | "refused";
 
+// Why an answer was refused. not_loaded: the data the question needs is not
+// in Paper Trail. out_of_scope: the request is not about polls or FEC data.
+// opinion: it asks for advice, a recommendation, or a prediction.
+export type DeclineReason = "not_loaded" | "out_of_scope" | "opinion";
+
 export interface Citation {
   // The sentence or figure in the answer that this source supports.
   claim: string;
@@ -46,6 +51,8 @@ export interface AnswerUsage {
 export interface Answer {
   text: string;
   status: AnswerStatus;
+  // Set when status is refused, null otherwise.
+  decline_reason: DeclineReason | null;
   citations: Citation[];
   retrieved: RetrievedItem[];
   tool_calls: ToolCall[];

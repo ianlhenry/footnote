@@ -13,7 +13,7 @@ npm run dev:api
 
 The server listens on http://127.0.0.1:8000. `POST /api/chat` takes `{ "content": "..." }` and returns the user message plus Claude's reply. `api/agent.ts` embeds the question with Voyage, retrieves the 8 nearest poll passages from the corpus (`api/retrieval.ts`), and gives those passages to Claude as citable search results. Claude can then call three FEC tools (`api/fec.ts`) to look up candidates, rank them by money raised or held, and find committees, for up to six Claude calls per question. It has no conversation history yet.
 
-The reply also carries `status` (`answered` or `refused`), `citations`, `retrieved`, `tool_calls`, and `usage`, defined in `api/contract.ts`. The eval in `evals/` grades them. `retrieved` lists the passages given to Claude and `citations` the passages it cited. `tool_calls` lists each FEC tool call with its input and the records it returned. `status` is always `answered` until something decides to refuse.
+The reply also carries `status` (`answered` or `refused`), `citations`, `retrieved`, `tool_calls`, and `usage`, defined in `api/contract.ts`. The eval in `evals/` grades them. `retrieved` lists the passages given to Claude and `citations` the passages it cited. `tool_calls` lists each FEC tool call with its input and the records it returned. `status` is `refused` when Claude calls the `decline` tool, which it does only when it can answer no part of the question; `decline_reason` then says why (`not_loaded`, `out_of_scope`, or `opinion`). Otherwise `status` is `answered` and `decline_reason` is null.
 
 `npm run dev` starts this process and the frontend together. See [web/README.md](../web/README.md).
 

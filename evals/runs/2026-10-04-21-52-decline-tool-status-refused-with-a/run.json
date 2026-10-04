@@ -1,0 +1,43 @@
+{
+  "id": "2026-10-04-21-52-decline-tool-status-refused-with-a",
+  "note": "decline tool: status refused with a reason",
+  "started_at": "2026-10-04T21:52:36.935Z",
+  "finished_at": "2026-10-04T21:54:27.775Z",
+  "url": "http://127.0.0.1:8000",
+  "reps": 3,
+  "case_ids": [
+    "texas-senate-poll",
+    "deportations-too-much",
+    "trump-approval-pew",
+    "marist-ohio-methodology",
+    "state-senate-margins",
+    "talarico-fundraising",
+    "iowa-poll-and-money",
+    "house-prediction",
+    "gallup-approval",
+    "pennsylvania-2024"
+  ],
+  "cases_sha": "48499f4e7af3",
+  "git": {
+    "commit": "54c698b",
+    "dirty": true
+  },
+  "api_sha": "96bff5b54e43",
+  "corpus": {
+    "documents": 43,
+    "passages": 576
+  },
+  "judge": {
+    "model": "claude-sonnet-5-5",
+    "effort": "medium",
+    "prompt_versions": {
+      "facts": 2,
+      "citations": 1
+    }
+  },
+  "agent_models": [
+    "claude-sonnet-5-5"
+  ],
+  "answers": 30,
+  "errors": 0
+}

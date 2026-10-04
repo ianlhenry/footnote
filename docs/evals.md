@@ -49,7 +49,7 @@ Every metric is a score from 0 to 1 per answer, or blank (—) when it does not 
 | quote_fidelity | code | Share of passage citations whose quote appears in the retrieved passage |
 | citation_support | judge | Share of citations whose quote supports the claim |
 
-Retrieval and citation metrics stay blank for a whole run until the agent returns retrieved items or citations, so a missing feature does not count as a failure. Today the agent has no retrieval or citations and always reports `answered`, so only facts, numbers, no_errors, and the two refusal metrics mean anything, and `refusal` fails every refusal case.
+Retrieval and citation metrics stay blank for a whole run until the agent returns retrieved items or citations, so a missing feature does not count as a failure. `refusal` reads the `status` field, which the agent sets to `refused` when Claude calls its `decline` tool. `refusal_text` judges the text alone. When the two disagree, the agent said no in words without calling the tool, or the reverse.
 
 The judge is `claude-sonnet-5-5` at medium effort by default, the same model the agent uses. A judge tends to favor answers written like its own, so treat close calls with care, or pass `--judge-model claude-opus-5-5` to compare. It is given the answer as data, told not to reward length, and returns a structured verdict per fact, per rule, and per citation, with quoted evidence. A judge served by a different model than requested fails the case instead of grading it.
 

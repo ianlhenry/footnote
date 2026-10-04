@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { Answer, AnswerUsage, Citation, RetrievedItem, ToolCall } from "./contract.ts";
+import type { Answer, AnswerUsage, Citation, DeclineReason, RetrievedItem, ToolCall } from "./contract.ts";
 import { readOnlyDatabase } from "./db.ts";
 import { FEC_TOOLS, runFecTool, type ToolResult } from "./fec.ts";
 import { type Passage, searchPassages } from "./retrieval.ts";
@@ -13,7 +13,29 @@ const MAX_TURNS = 6;
 
 const SYSTEM_PROMPT = `You are a research assistant for polling and campaign finance data.
 Answer questions about polls and FEC records plainly and briefly.
-Answer only from the search results provided with the question and from the FEC tools. Use the FEC tools for questions about campaign money. If neither contains what the question needs, say so.`;
+Answer only from the search results provided with the question and from the FEC tools. Use the FEC tools for questions about campaign money. If neither contains what the question needs, say so.
+If you cannot answer any part of the question, explain briefly and call the decline tool in the same reply. If you can answer part of it, answer that part and do not call decline.`;
+
+const DECLINE_REASONS = ["not_loaded", "out_of_scope", "opinion"] as const satisfies readonly DeclineReason[];
+
+// Calling this ends the conversation: the reply it arrives with is the answer.
+const DECLINE_TOOL: Anthropic.Tool = {
+  name: "decline",
+  description:
+    "Record that you are not answering the question. Call it together with your explanation, only when you can answer no part of what was asked. reason: not_loaded when the data the question needs is not in the search results or FEC tools, out_of_scope when the request is not about polls or campaign finance, opinion when it asks for advice, a recommendation, or a prediction.",
+  input_schema: {
+    type: "object",
+    properties: { reason: { type: "string", enum: [...DECLINE_REASONS] } },
+    required: ["reason"],
+    additionalProperties: false,
+  },
+};
+
+const DECLINE_TEXT: Record<DeclineReason, string> = {
+  not_loaded: "Paper Trail does not have the data this question needs.",
+  out_of_scope: "That is outside what Paper Trail covers: polls and FEC campaign finance records.",
+  opinion: "Paper Trail reports what polls and FEC records show, but does not give advice or predictions.",
+};
 
 export class MissingKeyError extends Error {
   constructor() {
@@ -80,19 +102,30 @@ export async function answer(question: string): Promise<Answer> {
   ];
 
   let response: Anthropic.Message | undefined;
+  let declineReason: DeclineReason | null = null;
   for (let turn = 1; turn <= MAX_TURNS; turn++) {
     const last = turn === MAX_TURNS;
     response = await getClient().messages.create({
       model: MODEL,
       max_tokens: MAX_TOKENS,
       system: SYSTEM_PROMPT,
-      tools: FEC_TOOLS,
+      tools: [...FEC_TOOLS, DECLINE_TOOL],
       // The last turn may not call tools, so it ends with an answer.
       ...(last ? { tool_choice: { type: "none" as const } } : {}),
       messages,
     });
     usage.push(usageOf(response));
     if (response.stop_reason !== "tool_use") break;
+
+    const decline = response.content.find(
+      (block): block is Anthropic.ToolUseBlock => block.type === "tool_use" && block.name === "decline",
+    );
+    if (decline) {
+      const reason = (decline.input as { reason?: string }).reason;
+      declineReason = DECLINE_REASONS.find((known) => known === reason) ?? "not_loaded";
+      toolCalls.push({ name: "decline", input: decline.input, output: null });
+      break;
+    }
 
     messages.push({ role: "assistant", content: response.content });
     const toolResults: Anthropic.ToolResultBlockParam[] = [];
@@ -134,9 +167,9 @@ export async function answer(question: string): Promise<Answer> {
   }
 
   return {
-    text: text.trim(),
-    // Nothing decides to refuse yet, so every reply counts as answered.
-    status: "answered",
+    text: text.trim() || (declineReason ? DECLINE_TEXT[declineReason] : ""),
+    status: declineReason ? "refused" : "answered",
+    decline_reason: declineReason,
     citations,
     retrieved: results.flatMap((result) => retrievedItems(result, scores.get(result) ?? null)),
     tool_calls: toolCalls,
