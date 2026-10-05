@@ -30,7 +30,7 @@ If you cannot answer any part of the question, explain briefly and call the decl
 A poll's stated margin of error applies to each number separately, so a lead is clearly outside it only when the gap is about twice that margin.`;
 
 // Tools and the system prompt are the same on every call, for every question. Since these are first in the request, a cache breakpoint at the end of
-// the system prompt allows each call within 5 minutes to read this for free. The data after it change with every question, so it's not cached.
+// the system prompt allows each call within 5 minutes to read this. The data after it change with every question, so it's not cached.
 const SYSTEM: Anthropic.TextBlockParam[] = [
   { type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
 ];
@@ -89,7 +89,6 @@ function toSearchResult(result: CitableResult): Anthropic.SearchResultBlockParam
  * @param question - What the user asked. It is embedded for the passage search and sent to Claude.
  * @returns The reply, whether it was answered or refused, citations, retrieved records, tool calls,
  * and token usage for each Claude call.
- * @throws {Error} If the model returns no reply.
  */
 export async function answer(question: string): Promise<Answer> {
   const anthropicClient = getClient();
@@ -104,10 +103,10 @@ export async function answer(question: string): Promise<Answer> {
     },
   ];
 
-  var declineReason = null;
-  var apiResponse: Anthropic.Message | null = null;
-  var toolCalls: ToolCall[] = [];
-  var apiUsage: AnswerUsage[] = [];
+  let declineReason = null;
+  let apiResponse: Anthropic.Message | null = null;
+  let toolCalls: ToolCall[] = [];
+  let apiUsage: AnswerUsage[] = [];
 
   for (let turn = 1; turn <= ANTHROPIC_API_CONFIG.MAX_TURNS_PER_QUESTION; turn++) {
     let apiRequest = {
@@ -233,7 +232,7 @@ export async function answer(question: string): Promise<Answer> {
     });
   });
 
-  var resultString =
+  let resultString =
     responseTextBlocks
       ?.map((block) => block.text)
       .join("")

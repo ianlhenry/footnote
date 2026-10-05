@@ -27,7 +27,7 @@ type VoyageEmbeddingResponse = {
  * Gets the embedding
  *
  * @param question - The user's question. It is embedded with Voyage before the search..
- * @returns Those passages, closest first, with their text and document details.
+ * @returns Embedding for the question as Float32Array.
  * @throws {MissingVoyageKeyError} If VOYAGE_API_KEY is unset.
  * @throws {VoyageError} If the embedding request fails or the vector has the wrong length.
  */

@@ -41,7 +41,7 @@ export interface CitableResult {
   title: string; // Claude's title
   name?: string; // Document's own title
   label?: string; // Document's description
-  source: string; // FEC?
+  source: string;
   blocks: ResultBlock[];
 }
 

@@ -7,11 +7,11 @@ Footnote is a research assistant for polling and campaign finance data:
 
 ## Why, and how?
 
-This project was designed primarily as an exercise to familiarize myself with building a product on top of an LLM, and get some experience with RAG, tool use, agent loops, citations, and evals. It is a learning project, not a production system: the corpus is small (<50 documents from two pollsters, plus FEC summary data for one cycle) and the eval set is <25 questions.
+This project was designed primarily as an exercise to familiarize myself with building a product on top of an LLM, and get some experience with RAG, tool use, agent loops, citations, and evals. It is a learning project, not a production system: the corpus is small (<50 documents from two pollsters, plus FEC summary data for one cycle) and the eval set is 10 questions.
 
 Much of this code code was written with AI coding tools (Cursor and Claude Code); I directed the design, and reviewed the changes. I wrote some key parts myself to make sure I fully understood it:
 - The core agent loop in `agent.ts` sends the nearest passages to Claude, runs tool calls until it answers or declines, and turns the reply into citations and retrieved records.
-- The tool implementations in `tools/declineTool.ts` and `tools/fecTool.ts` define the decline tool and the three FEC lookups, and turn each call into citable records or a refusal reason.
+- The tool wiring in `tools/declineTool.ts` and `tools/fecTool.ts`: routing each FEC tool call to its query, and reading the refusal reason from a decline call.
 - The retrieval code in `retrieval.ts` and `embeddings.ts` embeds the question, finds the nearest passages, and attaches each page's survey lines.
 
 ## Results

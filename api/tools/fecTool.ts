@@ -76,11 +76,9 @@ export const FEC_TOOLS: Anthropic.Tool[] = [
 /**
  * Runs one FEC tool Claude asked for.
  *
- * @param conn - The database holding the FEC tables.
- * @param name - Which tool: search_candidates, rank_candidates, or search_committees.
+ * @param name - Name of the tool asked for.
  * @param input - The arguments Claude supplied for that tool.
- * @returns The matching records as citable results.
- * @throws {Error} If the tool name is unknown or the arguments are missing or invalid.
+ * @returns The matching records as citable results, possibly empty, or null if no tool matched.
  */
 export function runFecTool(name: string, input: Record<string, unknown>): CitableResult[] | null {
   let fecResults: CitableResult[] | null = null;
