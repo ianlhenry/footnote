@@ -201,22 +201,20 @@ test("retrieval counts expected documents and FEC records", async () => {
    * One retrieved passage pointing at a document.
    *
    * @param url - The document URL.
-   * @returns The item with a fixed passage id, a high score, and an empty body.
+   * @returns The item with a fixed passage id and an empty body.
    */
   const passage = (url: string) => ({
     source: { kind: "passage" as const, passage_id: 1, document_url: url },
-    score: 0.9,
     text: "",
   });
   /**
    * One retrieved FEC candidate summary.
    *
    * @param id - The candidate id.
-   * @returns The item in fec_candidate_summary, with no score and an empty body.
+   * @returns The item in fec_candidate_summary, with an empty body.
    */
   const fec = (id: string) => ({
     source: { kind: "fec" as const, table: "fec_candidate_summary", id },
-    score: null,
     text: "",
   });
   const all = answerRow(item, {
@@ -248,7 +246,7 @@ test("citation coverage, quote fidelity, and support", async () => {
   };
   const row = answerRow(item, {
     text: "Talarico has 50% and Paxton 44% in a September 2026 poll.",
-    retrieved: [{ source, score: 0.8, text: "Paxton (R): 44%\nTalarico (D): 50%" }],
+    retrieved: [{ source, text: "Paxton (R): 44%\nTalarico (D): 50%" }],
     citations: [
       {
         claim: "Talarico has 50%",

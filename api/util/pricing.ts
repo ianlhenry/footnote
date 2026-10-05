@@ -1,4 +1,8 @@
 // Anthropic list prices per million tokens, used to show what an answer cost
+
+import type Anthropic from "@anthropic-ai/sdk";
+import type { AnswerUsage } from "../contract";
+
 // and what an eval run cost. Update them here when prices change.
 const PRICES: Record<string, { input: number; output: number }> = {
   "claude-opus-5-5": { input: 4, output: 20 },
@@ -6,7 +10,7 @@ const PRICES: Record<string, { input: number; output: number }> = {
   "claude-haiku-4-5": { input: 1, output: 5 },
 };
 
-export interface TokenCounts {
+interface TokenCounts {
   model: string;
   input_tokens: number;
   output_tokens: number;
@@ -34,4 +38,23 @@ export function callCost(usage: TokenCounts): number | null {
       usage.output_tokens * price.output) /
     1e6
   );
+}
+
+/**
+ * Turns one Claude reply's token counts into the usage stored with an answer.
+ *
+ * @param response - The message Claude returned, including its model and token counts.
+ * @returns Those counts plus the dollar cost of the call.
+ */
+export function getAnswerUsage(response: Anthropic.Message): AnswerUsage {
+  const counts = {
+    model: response.model,
+    stop_reason: response.stop_reason,
+    input_tokens: response.usage.input_tokens,
+    output_tokens: response.usage.output_tokens,
+    cache_read_input_tokens: response.usage.cache_read_input_tokens ?? 0,
+    cache_creation_input_tokens: response.usage.cache_creation_input_tokens ?? 0,
+  };
+
+  return { ...counts, cost_usd: callCost(counts) };
 }

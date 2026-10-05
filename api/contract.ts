@@ -18,7 +18,12 @@ export type AnswerStatus = "answered" | "refused";
 // opinion: it asks for advice, a recommendation, or a prediction.
 export const DECLINE_REASONS = ["not_loaded", "out_of_scope", "opinion"] as const;
 export type DeclineReason = (typeof DECLINE_REASONS)[number];
-
+export const DECLINE_TEXT: Record<DeclineReason, string> = {
+  not_loaded: "Footnote does not have the data this question needs.",
+  out_of_scope: "That is outside what Footnote covers: polls and FEC campaign finance records.",
+  opinion:
+    "Footnote reports what polls and FEC records show, but does not give advice or predictions.",
+};
 export interface Citation {
   // The sentence or figure in the answer that this source supports.
   claim: string;
@@ -32,11 +37,29 @@ export interface Citation {
   quote: string;
 }
 
+export interface CitableResult {
+  title: string; // Claude's title
+  name?: string; // Document's own title
+  label?: string; // Document's description
+  source: string; // FEC?
+  blocks: ResultBlock[];
+}
+
+export interface ResultBlock {
+  text: string;
+  ref: SourceRef;
+}
+
 export interface RetrievedItem {
   source: SourceRef;
-  // Similarity or rank score, when the retriever produces one.
-  score: number | null;
   text: string;
+}
+
+export function labelFor(ref: SourceRef): string {
+  if (ref.kind === "passage") {
+    return "Survey report";
+  }
+  return `FEC ${ref.table.replace(/^fec_/, "").replaceAll("_", " ")} · ${ref.id}`;
 }
 
 export interface ToolCall {

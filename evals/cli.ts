@@ -51,9 +51,7 @@ const AnswerSchema = z.object({
       quote: z.string(),
     }),
   ),
-  retrieved: z.array(
-    z.object({ source: SourceRef, score: z.number().nullable(), text: z.string() }),
-  ),
+  retrieved: z.array(z.object({ source: SourceRef, text: z.string() })),
   tool_calls: z.array(z.object({ name: z.string(), input: z.unknown(), output: z.unknown() })),
   usage: z.array(
     z.object({

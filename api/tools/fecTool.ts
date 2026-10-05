@@ -1,12 +1,7 @@
 import type Anthropic from "@anthropic-ai/sdk";
+import type { CitableResult } from "../contract";
 import { readOnlyDatabase } from "../db";
-import {
-  type FECToolResult,
-  MONEY_FIELDS,
-  rankCandidates,
-  searchCandidates,
-  searchCommittees,
-} from "../fec";
+import { MONEY_FIELDS, rankCandidates, searchCandidates, searchCommittees } from "../fec";
 
 export const FEC_TOOLS: Anthropic.Tool[] = [
   {
@@ -87,11 +82,8 @@ export const FEC_TOOLS: Anthropic.Tool[] = [
  * @returns The matching records as citable results.
  * @throws {Error} If the tool name is unknown or the arguments are missing or invalid.
  */
-export function runFecTool(
-  name: string,
-  input: Record<string, unknown>,
-): Anthropic.SearchResultBlockParam[] | null {
-  let fecResults: FECToolResult[] | null = null;
+export function runFecTool(name: string, input: Record<string, unknown>): CitableResult[] | null {
+  let fecResults: CitableResult[] | null = null;
 
   switch (name) {
     case "search_candidates":
@@ -105,24 +97,5 @@ export function runFecTool(
       break;
   }
 
-  return toSearchResults(fecResults);
-}
-
-// Convert the tool result to an
-function toSearchResults(
-  toolResults: FECToolResult[] | null,
-): Anthropic.SearchResultBlockParam[] | null {
-  if (!toolResults) {
-    return null;
-  }
-
-  return toolResults.map((toolResult) => ({
-    type: "search_result" as const,
-    source: toolResult.source,
-    title: toolResult.title,
-    content: toolResult.blocks.map((block) => ({
-      type: "text" as const,
-      text: block.text,
-    })),
-  }));
+  return fecResults;
 }

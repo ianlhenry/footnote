@@ -11,6 +11,8 @@ This project was designed primarily as an exercise to familiarize myself with bu
 
 Much of this code code was written with AI coding tools (Cursor and Claude Code); I directed the design, and reviewed the changes. I wrote some key parts myself to make sure I fully understood it:
 - The core agent loop in agent.ts, 
+- Tool implementations in tools/declineTool.ts, tools/fecTool.ts
+- The retrieval code in retrieval.ts / embeddings.ts,
 
 ## Results
 

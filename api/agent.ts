@@ -1,7 +1,18 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { Answer } from "./contract.ts";
+import {
+  type Answer,
+  type AnswerUsage,
+  type CitableResult,
+  type Citation,
+  DECLINE_TEXT,
+  labelFor,
+  type RetrievedItem,
+  type ToolCall,
+} from "./contract.ts";
+import { searchPassages } from "./retrieval.ts";
 import { DECLINE_TOOL, tryGetDeclineReason } from "./tools/declineTool.ts";
 import { FEC_TOOLS, runFecTool } from "./tools/fecTool.ts";
+import { getAnswerUsage } from "./util/pricing.ts";
 
 const ANTHROPIC_API_CONFIG = {
   MODEL: "claude-sonnet-5-5",
@@ -26,10 +37,7 @@ const SYSTEM: Anthropic.TextBlockParam[] = [
 
 const TOOL_DEFINITIONS: Anthropic.Tool[] = [DECLINE_TOOL, ...FEC_TOOLS];
 
-type ToolCallback = (
-  name: string,
-  input: Record<string, any>,
-) => Anthropic.SearchResultBlockParam[] | null;
+type ToolCallback = (name: string, input: Record<string, any>) => CitableResult[] | null;
 
 const TOOL_CALLBACKS: ToolCallback[] = [runFecTool];
 
@@ -65,6 +73,16 @@ export function toolInput(input: unknown): Record<string, unknown> {
   return {};
 }
 
+function toSearchResult(result: CitableResult): Anthropic.SearchResultBlockParam {
+  return {
+    type: "search_result",
+    source: result.source,
+    title: result.title,
+    content: result.blocks.map((block) => ({ type: "text", text: block.text })),
+    citations: { enabled: true },
+  };
+}
+
 /**
  * Answers a question from the closest survey passages and any FEC tools Claude calls.
  *
@@ -76,15 +94,21 @@ export function toolInput(input: unknown): Record<string, unknown> {
 export async function answer(question: string): Promise<Answer> {
   const anthropicClient = getClient();
 
+  const citableSources = await searchPassages(question, ANTHROPIC_API_CONFIG.NUM_PASSAGES_TO_SEND);
+
+  const searchResults = citableSources.map((passage) => toSearchResult(passage));
   const messages: Anthropic.MessageParam[] = [
     {
       role: "user",
-      content: [{ type: "text", text: question }],
+      content: [...searchResults, { type: "text", text: question }],
     },
   ];
 
   var declineReason = null;
   var apiResponse: Anthropic.Message | null = null;
+  var toolCalls: ToolCall[] = [];
+  var apiUsage: AnswerUsage[] = [];
+
   for (let turn = 1; turn <= ANTHROPIC_API_CONFIG.MAX_TURNS_PER_QUESTION; turn++) {
     let apiRequest = {
       model: ANTHROPIC_API_CONFIG.MODEL,
@@ -106,10 +130,14 @@ export async function answer(question: string): Promise<Answer> {
     // Make the API request.
     apiResponse = await anthropicClient.messages.create(apiRequest);
 
+    apiUsage.push(getAnswerUsage(apiResponse));
+
     // First check for a decline, and exit the loop.
     declineReason = tryGetDeclineReason(apiResponse);
     if (declineReason) {
       // If the model declined to answer, exit immediately.
+      toolCalls.push({ name: "decline", input: { reason: declineReason }, output: null });
+
       break;
     }
 
@@ -125,28 +153,43 @@ export async function answer(question: string): Promise<Answer> {
       .filter((block): block is Anthropic.ToolUseBlock => block.type === "tool_use")
       .map((toolBlock) => {
         try {
-          let toolResult: Anthropic.SearchResultBlockParam[] | null = null;
+          let toolResults: CitableResult[] | null = null;
           for (const toolCallback of TOOL_CALLBACKS) {
-            toolResult = toolCallback(toolBlock.name, toolInput(toolBlock.input));
-            if (toolResult !== null) {
+            toolResults = toolCallback(toolBlock.name, toolInput(toolBlock.input));
+            if (toolResults !== null) {
               break;
             }
           }
 
-          if (toolResult === null) {
+          if (toolResults === null) {
             throw new Error("Unknown tool");
           }
+
+          citableSources.push(...toolResults);
+          toolCalls.push({
+            name: toolBlock.name,
+            input: toolBlock.input,
+            output: toolResults.map((result) => result.title),
+          });
+          return {
+            type: "tool_result" as const,
+            tool_use_id: toolBlock.id,
+            content: toolResults.length
+              ? toolResults.map((result) => toSearchResult(result))
+              : [{ type: "text" as const, text: "No matching records." }],
+          };
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          toolCalls.push({
+            name: toolBlock.name,
+            input: toolBlock.input,
+            output: { error: errorMessage },
+          });
 
           return {
             type: "tool_result" as const,
             tool_use_id: toolBlock.id,
-            content: toolResult,
-          };
-        } catch (error) {
-          return {
-            type: "tool_result" as const,
-            tool_use_id: toolBlock.id,
-            content: error instanceof Error ? error.message : String(error),
+            content: errorMessage,
             is_error: true,
           };
         }
@@ -155,19 +198,57 @@ export async function answer(question: string): Promise<Answer> {
     messages.push({ role: "user", content: toolResults });
   }
 
-  const resultString =
-    apiResponse?.content
-      .filter((block): block is Anthropic.TextBlock => block.type === "text")
-      .map((block) => block.text)
-      .join("") ?? "";
+  const responseTextBlocks = apiResponse?.content.filter((block) => block.type === "text");
+
+  const citations: Citation[] = [];
+  for (const textBlock of responseTextBlocks || []) {
+    for (const searchCitation of textBlock.citations?.filter(
+      (citation) => citation.type === "search_result_location",
+    ) || []) {
+      const citedResult = citableSources[searchCitation.search_result_index];
+      const citedResultBlock = citedResult?.blocks[searchCitation.start_block_index];
+      if (citedResultBlock) {
+        citations.push({
+          claim: textBlock.text.trim(),
+          source: citedResultBlock.ref,
+          title: citedResult.name ?? citedResult.title,
+          label: citedResult.label ?? labelFor(citedResultBlock.ref),
+          quote: searchCitation.cited_text,
+        });
+      }
+    }
+  }
+
+  const retrievedItems: RetrievedItem[] = [];
+  citableSources.forEach((citableSource) => {
+    citableSource.blocks.forEach((block) => {
+      const same = retrievedItems.find(
+        (item) => JSON.stringify(item.source) === JSON.stringify(block.ref),
+      );
+      if (same) {
+        same.text += `\n\n${block.text}`;
+      } else {
+        retrievedItems.push({ source: block.ref, text: block.text });
+      }
+    });
+  });
+
+  var resultString =
+    responseTextBlocks
+      ?.map((block) => block.text)
+      .join("")
+      .trim() ?? "";
+  if (!resultString && declineReason) {
+    resultString = DECLINE_TEXT[declineReason];
+  }
 
   return {
     text: resultString,
     status: declineReason ? "refused" : "answered",
     decline_reason: declineReason,
-    citations: [],
-    retrieved: [],
-    tool_calls: [],
-    usage: [],
+    citations: citations,
+    retrieved: retrievedItems,
+    tool_calls: toolCalls,
+    usage: apiUsage,
   };
 }

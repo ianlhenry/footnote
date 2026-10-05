@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import type { SourceRef } from "./contract.ts";
+import type { CitableResult, SourceRef } from "./contract.ts";
 
 // FEC lookups Claude can call. Each matching record comes back as one
 // citable result whose text blocks each come from one table row, so a
@@ -8,14 +8,6 @@ import type { SourceRef } from "./contract.ts";
 export interface ResultBlock {
   text: string;
   ref: SourceRef;
-}
-
-export interface FECToolResult {
-  // What Claude sees as the result's title.
-  title: string;
-  // A link to the record on fec.gov.
-  source: string;
-  blocks: ResultBlock[];
 }
 
 const OFFICES: Record<string, string> = { H: "House", S: "Senate", P: "President" };
@@ -129,7 +121,7 @@ export function candidateWhere(input: Record<string, unknown>): {
 export function searchCandidates(
   conn: DatabaseSync,
   input: Record<string, unknown>,
-): FECToolResult[] {
+): CitableResult[] {
   const { where, params, words } = candidateWhere(input);
   // SQL narrows by substring; nameMatches then requires each word to start a
   // word of the name, so "Hinson" does not match HUTCHINSON.
@@ -182,7 +174,7 @@ export function rankQuery(input: Record<string, unknown>): {
 export function rankCandidates(
   conn: DatabaseSync,
   input: Record<string, unknown>,
-): FECToolResult[] {
+): CitableResult[] {
   const { column, limit, where, params } = rankQuery(input);
 
   const rows = conn
@@ -199,7 +191,7 @@ export function rankCandidates(
  * @param row - A candidate joined to its 2026-cycle summary and principal committee.
  * @returns The candidate record, its money totals when the summary has them, and its committee.
  */
-function candidateResult(row: CandidateRow): FECToolResult {
+function candidateResult(row: CandidateRow): CitableResult {
   const office = OFFICES[row.CAND_OFFICE ?? ""] ?? row.CAND_OFFICE ?? "unknown office";
   const seat =
     row.CAND_OFFICE === "H" && row.CAND_OFFICE_DISTRICT
@@ -330,7 +322,7 @@ export function committeeWhere(input: Record<string, unknown>): {
 export function searchCommittees(
   conn: DatabaseSync,
   input: Record<string, unknown>,
-): FECToolResult[] {
+): CitableResult[] {
   const { where, params, words } = committeeWhere(input);
 
   const rows = conn

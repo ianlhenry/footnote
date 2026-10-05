@@ -352,10 +352,7 @@ function Trace({ details, seconds }: { details: AnswerDetails; seconds?: number 
           <strong>Searched Pew and Marist reports</strong>, {passages.length} passages
           <ul>
             {passages.map((item) => (
-              <li key={sourceKey(item.source)}>
-                {item.text.split("\n")[0]}
-                {item.score !== null && <span className="score">{item.score.toFixed(2)}</span>}
-              </li>
+              <li key={sourceKey(item.source)}>{item.text.split("\n")[0]}</li>
             ))}
           </ul>
         </li>

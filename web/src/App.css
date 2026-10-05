@@ -365,12 +365,6 @@ body {
   color: #6d675e;
 }
 
-.trace .score {
-  margin-left: 0.4rem;
-  color: #a39d90;
-  font-variant-numeric: tabular-nums;
-}
-
 .tool-output {
   color: #6d675e;
 }
