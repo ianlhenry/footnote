@@ -59,7 +59,7 @@ export async function searchPassages(
   question: string,
   numPassages: number,
 ): Promise<CitableResult[]> {
-  if (!question || !question.trim()) {
+  if (!question?.trim()) {
     return [];
   }
 
