@@ -141,7 +141,7 @@ export default function App() {
   return (
     <main className="app">
       <header className="header">
-        <h1>Papertrail</h1>
+        <h1>Footnote</h1>
       </header>
       <ol className="messages" ref={list}>
         {messages.map((message, index) => (

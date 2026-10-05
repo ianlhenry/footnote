@@ -58,7 +58,7 @@ logging.getLogger("pypdf").setLevel(logging.ERROR)
 
 INGESTION_DIR = REPO_ROOT / "data" / "ingestion"
 VOYAGE_URL = "https://api.voyageai.com/v1/embeddings"
-USER_AGENT = "Mozilla/5.0 (compatible; Papertrail/1.0)"
+USER_AGENT = "Mozilla/5.0 (compatible; Footnote/1.0)"
 MIN_CHARS = 40
 MAX_CHARS = 800
 RETRY_STATUS = {429, 500, 502, 503, 504}

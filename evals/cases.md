@@ -221,6 +221,6 @@ Tags: refusal, not-loaded. Expect: **refuse**. Verified: yes.
 
 Must not:
 
-- Answers from general knowledge without saying the data is not in Paper Trail
+- Answers from general knowledge without saying the data is not in Footnote
 
 Provenance: Drafted by Claude. Election results are not loaded. The model likely knows the answer, so this checks that it sticks to its sources.

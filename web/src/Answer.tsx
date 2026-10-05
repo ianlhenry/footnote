@@ -6,7 +6,7 @@ import type { Answer, Citation, DeclineReason, SourceRef, ToolCall } from "../..
 export type AnswerDetails = Omit<Answer, "text">;
 
 const DECLINE_LABELS: Record<DeclineReason, string> = {
-  not_loaded: "Not in Paper Trail",
+  not_loaded: "Not in Footnote",
   out_of_scope: "Out of scope",
   opinion: "Advice or prediction",
 };

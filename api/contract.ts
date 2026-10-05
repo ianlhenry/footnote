@@ -14,7 +14,7 @@ export type SourceRef =
 export type AnswerStatus = "answered" | "refused";
 
 // Why an answer was refused. not_loaded: the data the question needs is not
-// in Paper Trail. out_of_scope: the request is not about polls or FEC data.
+// in Footnote. out_of_scope: the request is not about polls or FEC data.
 // opinion: it asks for advice, a recommendation, or a prediction.
 export type DeclineReason = "not_loaded" | "out_of_scope" | "opinion";
 

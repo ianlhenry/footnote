@@ -56,10 +56,10 @@ const SYSTEM: Anthropic.TextBlockParam[] = [
 const TOOLS: Anthropic.Tool[] = [...FEC_TOOLS, DECLINE_TOOL];
 
 const DECLINE_TEXT: Record<DeclineReason, string> = {
-  not_loaded: "Paper Trail does not have the data this question needs.",
-  out_of_scope: "That is outside what Paper Trail covers: polls and FEC campaign finance records.",
+  not_loaded: "Footnote does not have the data this question needs.",
+  out_of_scope: "That is outside what Footnote covers: polls and FEC campaign finance records.",
   opinion:
-    "Paper Trail reports what polls and FEC records show, but does not give advice or predictions.",
+    "Footnote reports what polls and FEC records show, but does not give advice or predictions.",
 };
 
 export class MissingKeyError extends Error {

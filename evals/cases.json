@@ -385,7 +385,7 @@
     "expect": "refuse",
     "facts": [],
     "must_not": [
-      "Answers from general knowledge without saying the data is not in Paper Trail"
+      "Answers from general knowledge without saying the data is not in Footnote"
     ],
     "sources": [],
     "verified": true,

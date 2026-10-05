@@ -1,6 +1,6 @@
 # Evals
 
-The eval asks Paper Trail a fixed set of questions through `/api/chat`, the same endpoint the UI uses, and scores the answers. The code is in `evals/`. Results across runs are in [evals/results.md](../evals/results.md).
+The eval asks Footnote a fixed set of questions through `/api/chat`, the same endpoint the UI uses, and scores the answers. The code is in `evals/`. Results across runs are in [evals/results.md](../evals/results.md).
 
 ## Running it
 
@@ -18,7 +18,7 @@ npm run test:evals                                     # self-test of the eval's
 
 A run costs money: one `/api/chat` request per case, which calls Claude, and one judge call per answer, plus one more for any answer with citations. `run` refuses without `--yes` and prints the plan instead. `plan` shows the measured cost per answer from the last graded run once there is one. `grade` only asks for `--yes` when the judge cache cannot answer, and the cache lives in `data/evals/judge-cache/`, so grading the same answers again is free.
 
-`--reps N` asks each case N times. With 10 cases and one rep, a score that moves less than about ±30 points is within noise. Use `--reps 3` or more, or more cases, before acting on smaller changes. The pilot measured about $0.008 per answer with the judge included, so a full run costs about $0.08 per rep.
+`--reps N` asks each case N times. With 10 cases and one rep, a score that moves less than about ±30 points is within noise. Use `--reps 3` or more, or more cases, before acting on smaller changes. The last graded run cost $0.86 for 30 answers, about $0.03 each with the judge included, so one rep of the 10 cases is about $0.30.
 
 ## The test set
 
@@ -31,7 +31,7 @@ A run costs money: one `/api/chat` request per case, which calls Claude, and one
 - `sources`: the documents (by URL) or FEC records (by table and id) that the answer should draw on.
 - `verified` and `provenance`: where the label came from and whether a person has checked it.
 
-The 10 cases were drafted by Claude from the database and are unverified. Because they were read from the database, a label inherits any ingestion error, so check them against the original pages. 25 more drafted cases are parked in `evals/cases-backlog.json`; move one into `cases.json` to use it. To verify one, check its facts against the source named in `provenance`, fix anything wrong, and set `verified` to true. Only verified cases count in the "Verified cases" table in `evals/results.md`. After changing labels, run `grade` on earlier runs so their scores use the new labels.
+All 10 cases in `cases.json` are marked `verified`. They were drafted by Claude from the database, and a draft can inherit an ingestion error, so a new case is checked against the source named in `provenance` before `verified` is set. 25 more drafted cases are parked in `evals/cases-backlog.json`; move one into `cases.json` to use it. Only verified cases count in the "Verified cases" table in `evals/results.md`. After changing labels, run `grade` on earlier runs so their scores use the new labels.
 
 ## Graders
 
