@@ -11,8 +11,9 @@
     "dev:web": "npm run dev --prefix web",
     "eval": "tsx evals/cli.ts",
     "typecheck": "tsc -p tsconfig.json && tsc -p web/tsconfig.json",
+    "test": "tsx --test api/*.test.ts evals/numbers.test.ts",
     "test:evals": "tsx --test evals/selftest.test.ts",
-    "check": "biome check . && npm run typecheck && npm run test:evals",
+    "check": "biome check . && npm run typecheck && npm run test && npm run test:evals",
     "format": "biome check --write .",
     "prepare": "lefthook install"
   },

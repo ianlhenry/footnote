@@ -5,6 +5,6 @@ alwaysApply: true
 
 # Finish only after npm run check passes
 
-Before saying a task is done, run `npm run check`. It runs the formatter, the linter, both typechecks, and the eval tests.
+Before saying a task is done, run `npm run check`. It runs the formatter, the linter, both typechecks, the unit tests, and the eval tests.
 
 If it fails, fix the failure and run it again. Do not report the task as done while the check is failing. Skip the check only when the task did not change the repo.

@@ -18,7 +18,7 @@ Open http://127.0.0.1:5173.
 
 ## Check
 
-`npm run check` runs the formatter, the linter, both typechecks, and the eval tests. A commit runs it before it is created, and GitHub Actions runs it on every push.
+`npm run check` runs the formatter, the linter, both typechecks, the unit tests, and the eval tests. A commit runs it before it is created, and GitHub Actions runs it on every push.
 
 ## Docs
 

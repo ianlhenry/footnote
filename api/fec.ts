@@ -185,18 +185,20 @@ function filters(input: Record<string, unknown>, where: string[], params: string
   }
 }
 
-// Find federal candidates whose filed name and filters match the tool input.
-// conn: the database holding candidates and their 2026-cycle summaries.
+// Build the WHERE clause for a candidate search.
 // input: optional name words, plus state, office, and party.
-// Returns up to ten candidates, highest receipts first, each as a citable result.
+// Returns the conditions, their bound values, and the name words. Each name
+// word is a LIKE substring here; nameMatches applies the stricter check later.
 // Throws when no name, state, office, or party was given.
-function searchCandidates(conn: DatabaseSync, input: Record<string, unknown>): ToolResult[] {
+export function candidateWhere(input: Record<string, unknown>): {
+  where: string[];
+  params: string[];
+  words: string[];
+} {
   const words = nameWords(text(input.name));
   const where: string[] = [];
   const params: string[] = [];
   filters(input, where, params);
-  // SQL narrows by substring; nameMatches then requires each word to start a
-  // word of the name, so "Hinson" does not match HUTCHINSON.
   for (const word of words) {
     where.push("c.CAND_NAME LIKE ?");
     params.push(`%${word}%`);
@@ -205,6 +207,18 @@ function searchCandidates(conn: DatabaseSync, input: Record<string, unknown>): T
     throw new Error("give at least a name, state, office, or party");
   }
 
+  return { where, params, words };
+}
+
+// Find federal candidates whose filed name and filters match the tool input.
+// conn: the database holding candidates and their 2026-cycle summaries.
+// input: optional name words, plus state, office, and party.
+// Returns up to ten candidates, highest receipts first, each as a citable result.
+// Throws when no name, state, office, or party was given.
+function searchCandidates(conn: DatabaseSync, input: Record<string, unknown>): ToolResult[] {
+  const { where, params, words } = candidateWhere(input);
+  // SQL narrows by substring; nameMatches then requires each word to start a
+  // word of the name, so "Hinson" does not match HUTCHINSON.
   const rows = conn
     .prepare(
       `${CANDIDATE_SELECT} WHERE ${where.join(" AND ")} ORDER BY s.TTL_RECEIPTS DESC NULLS LAST LIMIT 200`,
@@ -217,12 +231,16 @@ function searchCandidates(conn: DatabaseSync, input: Record<string, unknown>): T
     .map(candidateResult);
 }
 
-// List the candidates with the largest 2026-cycle total of one kind.
-// conn: the database holding the candidate summary.
+// Build the query for a candidate ranking.
 // input: which total to rank by, plus optional office, state, party, and how many.
-// Returns that many candidates, largest total first, at most twenty.
+// Returns the summary column, the row limit, and the WHERE clause with its bound values.
 // Throws when by is missing or is not a known total.
-function rankCandidates(conn: DatabaseSync, input: Record<string, unknown>): ToolResult[] {
+export function rankQuery(input: Record<string, unknown>): {
+  column: string;
+  limit: number;
+  where: string[];
+  params: string[];
+} {
   const by = text(input.by) as keyof typeof MONEY_FIELDS | undefined;
   if (!by || !(by in MONEY_FIELDS)) {
     throw new Error(`by must be one of ${Object.keys(MONEY_FIELDS).join(", ")}`);
@@ -233,6 +251,16 @@ function rankCandidates(conn: DatabaseSync, input: Record<string, unknown>): Too
   const where = [`s.${column} IS NOT NULL`];
   const params: string[] = [];
   filters(input, where, params);
+  return { column, limit, where, params };
+}
+
+// List the candidates with the largest 2026-cycle total of one kind.
+// conn: the database holding the candidate summary.
+// input: which total to rank by, plus optional office, state, party, and how many.
+// Returns that many candidates, largest total first, at most twenty.
+// Throws when by is missing or is not a known total.
+function rankCandidates(conn: DatabaseSync, input: Record<string, unknown>): ToolResult[] {
+  const { column, limit, where, params } = rankQuery(input);
 
   const rows = conn
     .prepare(
@@ -333,12 +361,16 @@ const COMMITTEE_TYPES: Record<string, string> = {
   C: "communication cost filer",
 };
 
-// Find committees by filed name or committee ID.
-// conn: the database holding committees and their 2026-cycle PAC summaries.
+// Build the WHERE clause for a committee search.
 // input: a committee name, a committee ID, or both.
-// Returns up to ten committees, highest receipts first, each as a citable result.
+// Returns the conditions, their bound values, and the name words. The ID is
+// uppercased, and each name word is a LIKE substring.
 // Throws when neither a name nor an ID was given.
-function searchCommittees(conn: DatabaseSync, input: Record<string, unknown>): ToolResult[] {
+export function committeeWhere(input: Record<string, unknown>): {
+  where: string[];
+  params: string[];
+  words: string[];
+} {
   const id = text(input.committee_id)?.toUpperCase();
   const words = nameWords(text(input.name));
   const where: string[] = [];
@@ -354,6 +386,17 @@ function searchCommittees(conn: DatabaseSync, input: Record<string, unknown>): T
   if (!where.length) {
     throw new Error("give a committee name or ID");
   }
+
+  return { where, params, words };
+}
+
+// Find committees by filed name or committee ID.
+// conn: the database holding committees and their 2026-cycle PAC summaries.
+// input: a committee name, a committee ID, or both.
+// Returns up to ten committees, highest receipts first, each as a citable result.
+// Throws when neither a name nor an ID was given.
+function searchCommittees(conn: DatabaseSync, input: Record<string, unknown>): ToolResult[] {
+  const { where, params, words } = committeeWhere(input);
 
   const rows = conn
     .prepare(
@@ -423,7 +466,7 @@ function nameWords(name: string | undefined): string[] {
 // filed: the name as the FEC recorded it.
 // words: the query words, already split and uppercased.
 // Returns whether every query word starts some word of the filed name.
-function nameMatches(filed: string, words: string[]): boolean {
+export function nameMatches(filed: string, words: string[]): boolean {
   const parts = filed.toUpperCase().split(/[^A-Z0-9']+/);
   return words.every((word) => parts.some((part) => part.startsWith(word)));
 }

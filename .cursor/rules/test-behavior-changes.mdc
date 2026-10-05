@@ -1,0 +1,14 @@
+---
+description: Add or update a test for any change in behavior
+alwaysApply: true
+---
+
+# Add or update a test for any change in behavior
+
+When a change alters what the code does, add a test for the new behavior or update the test that already covers it. A comment, a rename, or a formatting change needs no test.
+
+```ts
+// Asked to make "Hinson" match HUTCHINSON.
+// Bad: change nameMatches and leave the tests as they are.
+// Good: update the nameMatches test so it expects the new match, and make the code pass.
+```

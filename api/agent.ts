@@ -239,7 +239,7 @@ export async function answer(question: string): Promise<Answer> {
 
   // With citations on, the reply comes back as several text blocks that
   // together make one answer, each cited block carrying its sources.
-  const citations: Citation[] = [];
+  const citations = citationsFrom(response.content, results);
   let text = "";
   for (const block of response.content) {
     if (block.type !== "text") {
@@ -247,6 +247,35 @@ export async function answer(question: string): Promise<Answer> {
     }
 
     text += block.text;
+  }
+
+  return {
+    text: text.trim() || (declineReason ? DECLINE_TEXT[declineReason] : ""),
+    status: declineReason ? "refused" : "answered",
+    decline_reason: declineReason,
+    citations,
+    retrieved: results.flatMap((result) => retrievedItems(result, scores.get(result) ?? null)),
+    tool_calls: toolCalls,
+    usage,
+  };
+}
+
+// Turn a reply's text blocks into citations. Each search-result location picks
+// the source block it points at.
+// content: the model's reply. Only text blocks carry citations.
+// results: the passage and FEC results, in the order they were shown to the model.
+// Returns one citation per location that names a real result and block. Other
+// citation kinds, and indexes past the end, are left out.
+export function citationsFrom(
+  content: Anthropic.ContentBlock[],
+  results: ToolResult[],
+): Citation[] {
+  const citations: Citation[] = [];
+  for (const block of content) {
+    if (block.type !== "text") {
+      continue;
+    }
+
     for (const citation of block.citations ?? []) {
       if (citation.type !== "search_result_location") {
         continue;
@@ -268,15 +297,7 @@ export async function answer(question: string): Promise<Answer> {
     }
   }
 
-  return {
-    text: text.trim() || (declineReason ? DECLINE_TEXT[declineReason] : ""),
-    status: declineReason ? "refused" : "answered",
-    decline_reason: declineReason,
-    citations,
-    retrieved: results.flatMap((result) => retrievedItems(result, scores.get(result) ?? null)),
-    tool_calls: toolCalls,
-    usage,
-  };
+  return citations;
 }
 
 // "FEC candidate summary · S6IA00314" for an FEC record.
