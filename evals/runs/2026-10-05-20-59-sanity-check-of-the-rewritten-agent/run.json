@@ -1,0 +1,43 @@
+{
+  "id": "2026-10-05-20-59-sanity-check-of-the-rewritten-agent",
+  "note": "sanity check of the rewritten agent",
+  "started_at": "2026-10-05T20:59:00.998Z",
+  "finished_at": "2026-10-05T20:59:37.158Z",
+  "url": "http://127.0.0.1:8000",
+  "reps": 1,
+  "case_ids": [
+    "texas-senate-poll",
+    "deportations-too-much",
+    "trump-approval-pew",
+    "marist-ohio-methodology",
+    "state-senate-margins",
+    "talarico-fundraising",
+    "iowa-poll-and-money",
+    "house-prediction",
+    "gallup-approval",
+    "pennsylvania-2024"
+  ],
+  "cases_sha": "7872535f6eac",
+  "git": {
+    "commit": "f8c9114",
+    "dirty": false
+  },
+  "api_sha": "98c8bd41158a",
+  "corpus": {
+    "documents": 43,
+    "passages": 576
+  },
+  "judge": {
+    "model": "claude-sonnet-5-5",
+    "effort": "medium",
+    "prompt_versions": {
+      "facts": 2,
+      "citations": 1
+    }
+  },
+  "agent_models": [
+    "claude-sonnet-5-5"
+  ],
+  "answers": 10,
+  "errors": 0
+}

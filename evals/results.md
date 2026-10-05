@@ -15,6 +15,7 @@ Only cases whose labels a person has checked. Compare runs here.
 | [2026-10-04-21-44-fec-tools-search-candidates-rank](runs/2026-10-04-21-44-fec-tools-search-candidates-rank/report.md) | fec tools: search_candidates, rank_candidates, search_committees | 53715c6+ | 30 | 98% (24) | 98% (24) | 100% (30) | 80% (30) | 100% (30) | 100% (24) | 93% (29) | 100% (26) | 98% (29) | $0.8682 |
 | [2026-10-04-21-52-decline-tool-status-refused-with-a](runs/2026-10-04-21-52-decline-tool-status-refused-with-a/report.md) | decline tool: status refused with a reason | 54c698b+ | 30 | 98% (24) | 100% (24) | 100% (30) | 100% (30) | 100% (30) | 100% (24) | 93% (24) | 100% (21) | 98% (24) | $0.8616 |
 | [2026-10-05-01-31-margin-of-error-applies-per-number-so-a](runs/2026-10-05-01-31-margin-of-error-applies-per-number-so-a/report.md) | margin of error applies per number, so a lead needs about twice that margin | a8753d9+ | 30 | 96% (24) | 100% (24) | 100% (30) | 100% (30) | 100% (30) | 100% (24) | 86% (24) | 100% (21) | 100% (24) | $0.7559 |
+| [2026-10-05-20-59-sanity-check-of-the-rewritten-agent](runs/2026-10-05-20-59-sanity-check-of-the-rewritten-agent/report.md) | sanity check of the rewritten agent | f8c9114 | 10 | 94% (8) | 100% (8) | 100% (10) | 100% (10) | 100% (10) | 100% (8) | 80% (8) | 100% (7) | 97% (8) | $0.2436 |
 
 ## All cases
 
@@ -28,6 +29,7 @@ Includes cases with unverified labels, so a score here can be wrong because the 
 | [2026-10-04-21-44-fec-tools-search-candidates-rank](runs/2026-10-04-21-44-fec-tools-search-candidates-rank/report.md) | fec tools: search_candidates, rank_candidates, search_committees | 53715c6+ | 30 | 98% (24) | 98% (24) | 100% (30) | 80% (30) | 100% (30) | 100% (24) | 93% (29) | 100% (26) | 98% (29) | $0.8682 |
 | [2026-10-04-21-52-decline-tool-status-refused-with-a](runs/2026-10-04-21-52-decline-tool-status-refused-with-a/report.md) | decline tool: status refused with a reason | 54c698b+ | 30 | 98% (24) | 100% (24) | 100% (30) | 100% (30) | 100% (30) | 100% (24) | 93% (24) | 100% (21) | 98% (24) | $0.8616 |
 | [2026-10-05-01-31-margin-of-error-applies-per-number-so-a](runs/2026-10-05-01-31-margin-of-error-applies-per-number-so-a/report.md) | margin of error applies per number, so a lead needs about twice that margin | a8753d9+ | 30 | 96% (24) | 100% (24) | 100% (30) | 100% (30) | 100% (30) | 100% (24) | 86% (24) | 100% (21) | 100% (24) | $0.7559 |
+| [2026-10-05-20-59-sanity-check-of-the-rewritten-agent](runs/2026-10-05-20-59-sanity-check-of-the-rewritten-agent/report.md) | sanity check of the rewritten agent | f8c9114 | 10 | 94% (8) | 100% (8) | 100% (10) | 100% (10) | 100% (10) | 100% (8) | 80% (8) | 100% (7) | 97% (8) | $0.2436 |
 
 ## Metrics
 
