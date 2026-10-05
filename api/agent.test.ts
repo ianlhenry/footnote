@@ -36,11 +36,14 @@ const candidate: ToolResult = {
   ],
 };
 
-// A search-result citation pointing at one block of one result.
-// searchResultIndex: which result in the list shown to the model.
-// startBlockIndex: which text block of that result.
-// citedText: the quote Claude attached.
-// Returns the location citation with the other fields filled in.
+/**
+ * A search-result citation pointing at one block of one result.
+ *
+ * @param searchResultIndex - Which result in the list shown to the model.
+ * @param startBlockIndex - Which text block of that result.
+ * @param citedText - The quote Claude attached.
+ * @returns The location citation with the other fields filled in.
+ */
 function location(
   searchResultIndex: number,
   startBlockIndex: number,

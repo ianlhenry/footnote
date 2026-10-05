@@ -42,9 +42,13 @@ export type Case = z.infer<typeof Case>;
 
 export const CASES_PATH = new URL("./cases.json", import.meta.url);
 
-// Read the eval cases and reject a file the schema or the extra rules do not accept.
-// path: the cases file to read. Defaults to cases.json beside this module.
-// Returns the cases. Throws when the JSON, the schema, or checkCases fails.
+/**
+ * Reads the eval cases and rejects a file the schema or the extra rules do not accept.
+ *
+ * @param path - The cases file to read. Defaults to cases.json beside this module.
+ * @returns The cases.
+ * @throws {Error} If the JSON, the schema, or checkCases fails.
+ */
 export function loadCases(path: URL | string = CASES_PATH): Case[] {
   const raw: unknown = JSON.parse(fs.readFileSync(path, "utf8"));
   const cases = z.array(Case).parse(raw);
@@ -56,9 +60,13 @@ export function loadCases(path: URL | string = CASES_PATH): Case[] {
   return cases;
 }
 
-// Rules the schema cannot express: unique ids, at least one fact and one source on every answer case, and no facts on a refusal.
-// cases: the cases already parsed from JSON.
-// Returns one message per broken rule.
+/**
+ * Rules the schema cannot express: unique ids, at least one fact and one source on every answer
+ * case, and no facts on a refusal.
+ *
+ * @param cases - The cases already parsed from JSON.
+ * @returns One message per broken rule.
+ */
 export function checkCases(cases: Case[]): string[] {
   const problems: string[] = [];
   const seen = new Set<string>();

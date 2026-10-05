@@ -20,16 +20,22 @@ interface Source {
   quotes: string[];
 }
 
-// Build the key that groups citations of the same source.
-// ref: a passage or an FEC record the answer cited.
-// Returns a string unique to that passage or FEC row.
+/**
+ * Builds the key that groups citations of the same source.
+ *
+ * @param ref - A passage or an FEC record the answer cited.
+ * @returns A string unique to that passage or FEC row.
+ */
 function sourceKey(ref: SourceRef): string {
   return ref.kind === "passage" ? `passage:${ref.passage_id}` : `fec:${ref.table}:${ref.id}`;
 }
 
-// Build the public URL for a cited source.
-// ref: a passage or an FEC record the answer cited.
-// Returns the report URL for a passage, or the FEC data page for a filing.
+/**
+ * Builds the public URL for a cited source.
+ *
+ * @param ref - A passage or an FEC record the answer cited.
+ * @returns The report URL for a passage, or the FEC data page for a filing.
+ */
 function sourceLink(ref: SourceRef): string {
   if (ref.kind === "passage") {
     return ref.document_url;
@@ -40,9 +46,12 @@ function sourceLink(ref: SourceRef): string {
   return `https://www.fec.gov/data/${kind}/${ref.id}/`;
 }
 
-// Number each distinct source in the order the answer first cites it.
-// citations: the claims the answer attributed to a source, in citation order.
-// Returns a map from source key to that source, with its number and supporting quotes.
+/**
+ * Number each distinct source in the order the answer first cites it.
+ *
+ * @param citations - The claims the answer attributed to a source, in citation order.
+ * @returns A map from source key to that source, with its number and supporting quotes.
+ */
 function numberSources(citations: Citation[]): Map<string, Source> {
   const sources = new Map<string, Source>();
   for (const citation of citations) {
@@ -67,14 +76,17 @@ function numberSources(citations: Citation[]): Map<string, Source> {
   return sources;
 }
 
-// Insert a Markdown link to the source list after each cited claim, so the
-// markers survive Markdown rendering, table cells included. Claims are found
-// in order, so a repeated phrase is matched at its next occurrence.
-// id: this answer's id, used in the in-page link targets.
-// text: the answer markdown, before markers are inserted.
-// citations: the claims and the sources they point at, in citation order.
-// sources: numbered sources, keyed the same way as sourceKey.
-// Returns the answer text with citation links inserted after each matched claim.
+/**
+ * Insert a Markdown link to the source list after each cited claim, so the markers survive Markdown
+ * rendering, table cells included. Claims are found in order, so a repeated phrase is matched at
+ * its next occurrence.
+ *
+ * @param id - This answer's id, used in the in-page link targets.
+ * @param text - The answer markdown, before markers are inserted.
+ * @param citations - The claims and the sources they point at, in citation order.
+ * @param sources - Numbered sources, keyed the same way as sourceKey.
+ * @returns The answer text with citation links inserted after each matched claim.
+ */
 function withMarkers(
   id: string,
   text: string,
@@ -114,16 +126,21 @@ function withMarkers(
   return marked + text.slice(start);
 }
 
-// Citation markers are in-page links; any other link the answer contains
-// opens in a new tab.
-// id: this answer's id, so marker hrefs can be told from ordinary links.
-// Returns the Markdown component map used to render those links.
+/**
+ * Citation markers are in-page links; any other link the answer contains opens in a new tab.
+ *
+ * @param id - This answer's id, so marker hrefs can be told from ordinary links.
+ * @returns The Markdown component map used to render those links.
+ */
 function markdownComponents(id: string): Components {
   return {
-    // Render one Markdown link as a citation marker or an external link.
-    // href: the link target. Citation markers point at this answer's source list.
-    // children: the link text, which for a marker is the source number.
-    // Renders an in-page citation link, or an external link that opens in a new tab.
+    /**
+     * Renders one Markdown link as a citation marker or an external link. Renders an in-page
+     * citation link, or an external link that opens in a new tab.
+     *
+     * @param href - The link target. Citation markers point at this answer's source list.
+     * @param children - The link text, which for a marker is the source number.
+     */
     a({ href, children }) {
       if (href?.startsWith(`#${id}-source-`)) {
         return (
@@ -142,12 +159,15 @@ function markdownComponents(id: string): Components {
   };
 }
 
-// Render one answer: a declined badge when refused, the markdown with citation markers, the source list, and the trace.
-// id: this answer's id, used to link citation markers to its source list.
-// text: the answer markdown.
-// details: status, citations, retrieved passages, tool calls, and token usage.
-// seconds: how long the question took, shown in the trace when present.
-// Renders the answer block.
+/**
+ * Renders one answer: a declined badge when refused, the markdown with citation markers, the source
+ * list, and the trace. Renders the answer block.
+ *
+ * @param id - This answer's id, used to link citation markers to its source list.
+ * @param text - The answer markdown.
+ * @param details - Status, citations, retrieved passages, tool calls, and token usage.
+ * @param seconds - How long the question took, shown in the trace when present.
+ */
 export function AnswerView({
   id,
   text,
@@ -206,9 +226,12 @@ export function AnswerView({
 // stays one scrolling page instead of a stack of small scrollboxes.
 const LONG_QUOTE = 280;
 
-// Show a supporting quote, collapsed to its first few lines when it is long.
-// text: the quote from the cited source.
-// Renders the quote and a toggle that expands or collapses a long one.
+/**
+ * Shows a supporting quote, collapsed to its first few lines when it is long. Renders the quote and
+ * a toggle that expands or collapses a long one.
+ *
+ * @param text - The quote from the cited source.
+ */
 function Quote({ text }: { text: string }) {
   const [open, setOpen] = useState(false);
   const long = text.length > LONG_QUOTE;
@@ -230,25 +253,34 @@ function Quote({ text }: { text: string }) {
   );
 }
 
-// For answers saved before citations carried a label.
-// ref: a passage or an FEC record with no label of its own.
-// Returns a short stand-in label for that source.
+/**
+ * For answers saved before citations carried a label.
+ *
+ * @param ref - A passage or an FEC record with no label of its own.
+ * @returns A short stand-in label for that source.
+ */
 function fallbackLabel(ref: SourceRef): string {
   return ref.kind === "passage"
     ? "Pew or Marist report"
     : `FEC ${ref.table.replace(/^fec_/, "").replaceAll("_", " ")} · ${ref.id}`;
 }
 
-// Three decimals below a dime, so a typical answer reads $0.031, not $0.03.
-// value: a dollar amount, usually the cost of the Claude calls.
-// Returns that amount formatted as dollars.
+/**
+ * Three decimals below a dime, so a typical answer reads $0.031, not $0.03.
+ *
+ * @param value - A dollar amount, usually the cost of the Claude calls.
+ * @returns That amount formatted as dollars.
+ */
 function dollars(value: number): string {
   return `$${value.toFixed(value < 0.1 ? 3 : 2)}`;
 }
 
-// Summarize the arguments a tool was called with.
-// input: the tool's arguments, or anything else the trace stored there.
-// Returns a comma-separated list of those fields, or an empty string when there are none.
+/**
+ * Summarize the arguments a tool was called with.
+ *
+ * @param input - The tool's arguments, or anything else the trace stored there.
+ * @returns A comma-separated list of those fields, or an empty string when there are none.
+ */
 function describeInput(input: unknown): string {
   if (!input || typeof input !== "object") {
     return "";
@@ -259,9 +291,13 @@ function describeInput(input: unknown): string {
     .join(", ");
 }
 
-// Summarize what a tool call returned.
-// call: one tool call from the trace, including its name and output.
-// Returns a short description of the records or an error, or an empty string for a decline or an unrecognized output.
+/**
+ * Summarize what a tool call returned.
+ *
+ * @param call - One tool call from the trace, including its name and output.
+ * @returns A short description of the records or an error, or an empty string for a decline or an
+ * unrecognized output.
+ */
 function describeOutput(call: ToolCall): string {
   if (call.name === "decline") {
     return "";
@@ -282,11 +318,13 @@ function describeOutput(call: ToolCall): string {
   return "";
 }
 
-// What the agent looked at and did, in order: the passages retrieved for the
-// question, then each tool call Claude made.
-// details: retrieved passages, tool calls, and token usage for this answer.
-// seconds: how long the question took, included in the summary when present.
-// Renders a collapsed trace of the search, the tool calls, and the cost.
+/**
+ * What the agent looked at and did, in order: the passages retrieved for the question, then each
+ * tool call Claude made. Renders a collapsed trace of the search, the tool calls, and the cost.
+ *
+ * @param details - Retrieved passages, tool calls, and token usage for this answer.
+ * @param seconds - How long the question took, included in the summary when present.
+ */
 function Trace({ details, seconds }: { details: AnswerDetails; seconds?: number }) {
   const passages = details.retrieved.filter((item) => item.source.kind === "passage");
   const inputTokens = details.usage.reduce(

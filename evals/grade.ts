@@ -56,9 +56,13 @@ export interface RunFeatures {
   citations: boolean;
 }
 
-// Whether any answer in the run retrieved something or cited something.
-// rows: the stored answers from one run.
-// Returns the two flags. A metric that needs a flag stays null for every case when that flag is false.
+/**
+ * Whether any answer in the run retrieved something or cited something.
+ *
+ * @param rows - The stored answers from one run.
+ * @returns The two flags. A metric that needs a flag stays null for every case when that flag is
+ * false.
+ */
 export function runFeatures(rows: AnswerRow[]): RunFeatures {
   return {
     retrieval: rows.some((row) => row.answer.retrieved.length > 0),
@@ -66,12 +70,16 @@ export function runFeatures(rows: AnswerRow[]): RunFeatures {
   };
 }
 
-// Score one stored answer against its case: facts, figures, refusal, retrieval, and citations.
-// item: the labeled case.
-// row: the stored answer for one repetition.
-// features: whether this run retrieved or cited anything. Metrics that need those stay null when it did not.
-// judge: decides which facts the text supports and which citations support their claims.
-// Returns the scores, the grading details, and the judge usage.
+/**
+ * Scores one stored answer against its case: facts, figures, refusal, retrieval, and citations.
+ *
+ * @param item - The labeled case.
+ * @param row - The stored answer for one repetition.
+ * @param features - Whether this run retrieved or cited anything. Metrics that need those stay null
+ * when it did not.
+ * @param judge - Decides which facts the text supports and which citations support their claims.
+ * @returns The scores, the grading details, and the judge usage.
+ */
 export async function grade(
   item: Case,
   row: AnswerRow,
@@ -178,10 +186,14 @@ export async function grade(
   };
 }
 
-// Whether a retrieved item is one the case expected.
-// expected: a document URL, or an FEC table and record id.
-// actual: the source on one retrieved item.
-// Returns true when the document URL matches, ignoring a trailing slash, or the FEC table and id both match.
+/**
+ * Whether a retrieved item is one the case expected.
+ *
+ * @param expected - A document URL, or an FEC table and record id.
+ * @param actual - The source on one retrieved item.
+ * @returns True when the document URL matches, ignoring a trailing slash, or the FEC table and id
+ * both match.
+ */
 function sameSource(expected: ExpectedSource, actual: SourceRef): boolean {
   if (expected.kind === "document") {
     return actual.kind === "passage" && trimSlash(actual.document_url) === trimSlash(expected.url);
@@ -190,24 +202,33 @@ function sameSource(expected: ExpectedSource, actual: SourceRef): boolean {
   return actual.kind === "fec" && actual.table === expected.table && actual.id === expected.id;
 }
 
-// A short label for an expected source.
-// source: a document URL, or an FEC table and record id.
-// Returns the URL, or the table and id.
+/**
+ * A short label for an expected source.
+ *
+ * @param source - A document URL, or an FEC table and record id.
+ * @returns The URL, or the table and id.
+ */
 function describe(source: ExpectedSource): string {
   return source.kind === "document" ? source.url : `${source.table} ${source.id}`;
 }
 
-// Drop trailing slashes so two URLs for the same document compare equal.
-// url: a document URL.
-// Returns the URL without trailing slashes.
+/**
+ * Drops trailing slashes so two URLs for the same document compare equal.
+ *
+ * @param url - A document URL.
+ * @returns The URL without trailing slashes.
+ */
 function trimSlash(url: string): string {
   return url.replace(/\/+$/, "");
 }
 
-// Whitespace is dropped entirely: a citation spanning several blocks of one
-// search result joins them without a fixed separator. Letters are lowercased too.
-// text: a citation quote, or the passage text it should appear in.
-// Returns the text with whitespace removed and letters lowercased.
+/**
+ * Whitespace is dropped entirely: a citation spanning several blocks of one search result joins
+ * them without a fixed separator. Letters are lowercased too.
+ *
+ * @param text - A citation quote, or the passage text it should appear in.
+ * @returns The text with whitespace removed and letters lowercased.
+ */
 function normalize(text: string): string {
   return text.replace(/\s+/g, "").toLowerCase();
 }

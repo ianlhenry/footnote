@@ -45,9 +45,12 @@ const SCALES: Record<string, number> = {
 const NUMBER =
   /(\d{1,3}(?:,\d{3})+|\d+)(\.\d+)?\s*(%|percent\b|percentage points?\b|thousand\b|million\b|billion\b|mn\b|bn\b|[kmb]\b)?/gi;
 
-// Pull every number out of text, including number words and amounts with a scale word.
-// text: an answer, a fact, or citation claims.
-// Returns each figure as a plain value, whether it was written as a percent, and the matched text.
+/**
+ * Pulls every number out of text, including number words and amounts with a scale word.
+ *
+ * @param text - An answer, a fact, or citation claims.
+ * @returns Each figure as a plain value, whether it was written as a percent, and the matched text.
+ */
 export function findNumbers(text: string): FoundNumber[] {
   const found: FoundNumber[] = [];
   for (const match of text.matchAll(NUMBER)) {
@@ -80,11 +83,13 @@ const DATE = new RegExp(
 );
 const ISO_DATE = /\b\d{4}-\d{2}-\d{2}\b/g;
 
-// The figures in an answer that a citation should back: numbers written in
-// digits, leaving out dates, bare years such as "2026", and number words
-// such as "one".
-// text: the answer to scan.
-// Returns those figures, scaled the same way findNumbers scales them.
+/**
+ * The figures in an answer that a citation should back: numbers written in digits, leaving out
+ * dates, bare years such as "2026", and number words such as "one".
+ *
+ * @param text - The answer to scan.
+ * @returns Those figures, scaled the same way findNumbers scales them.
+ */
 export function findFigures(text: string): FoundNumber[] {
   const withoutDates = text.replace(DATE, " ").replace(ISO_DATE, " ");
   return findNumbers(withoutDates).filter(
@@ -92,11 +97,15 @@ export function findFigures(text: string): FoundNumber[] {
   );
 }
 
-// Whether one found number is the expected figure. Percentages may be written
-// with or without the sign ("50-42"); dollars and counts may be rounded.
-// expected: the labeled figure and which tolerance applies.
-// found: one number taken from the text.
-// Returns true when the two are close enough for that kind. A percent does not count as dollars or a count.
+/**
+ * Whether one found number is the expected figure. Percentages may be written with or without the
+ * sign ("50-42"); dollars and counts may be rounded.
+ *
+ * @param expected - The labeled figure and which tolerance applies.
+ * @param found - One number taken from the text.
+ * @returns True when the two are close enough for that kind. A percent does not count as dollars or
+ * a count.
+ */
 export function matches(expected: ExpectedValue, found: FoundNumber): boolean {
   const { n, kind } = expected;
   switch (kind) {
@@ -111,10 +120,14 @@ export function matches(expected: ExpectedValue, found: FoundNumber): boolean {
   }
 }
 
-// Whether the text contains the expected figure, using the same tolerances as matches.
-// expected: the labeled figure and which tolerance applies.
-// text: the answer or fact to scan. Digits, scales, and number words all count; dates are not removed.
-// Returns true when any number in the text matches.
+/**
+ * Whether the text contains the expected figure, using the same tolerances as matches.
+ *
+ * @param expected - The labeled figure and which tolerance applies.
+ * @param text - The answer or fact to scan. Digits, scales, and number words all count; dates are
+ * not removed.
+ * @returns True when any number in the text matches.
+ */
 export function stated(expected: ExpectedValue, text: string): boolean {
   return findNumbers(text).some((found) => matches(expected, found));
 }

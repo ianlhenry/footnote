@@ -20,8 +20,10 @@ type ChatResponse = {
   } & Partial<AnswerDetails>)[];
 };
 
-// Render the chat page: the message list, a pending line while a question is in flight, and the composer.
-// Renders the Papertrail conversation.
+/**
+ * Renders the chat page: the message list, a pending line while a question is in flight, and the
+ * composer.
+ */
 export default function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [content, setContent] = useState("");
@@ -48,9 +50,12 @@ export default function App() {
     list.current.scrollTo({ top: latestAnswer.current.offsetTop, behavior: "smooth" });
   }, [messages]);
 
-  // Send the composer's text to the chat API and append the question and the reply.
-  // event: the form submit, cancelled so the page does not reload.
-  // Adds the user's question immediately, then the assistant reply or an error, and clears the composer.
+  /**
+   * Sends the composer's text to the chat API and appends the question and the reply. Adds the
+   * user's question immediately, then the assistant reply or an error, and clears the composer.
+   *
+   * @param event - The form submit, cancelled so the page does not reload.
+   */
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const text = content.trim();

@@ -30,28 +30,36 @@ export interface RunInfo {
   errors: number;
 }
 
-// Prices live in api/pricing.ts. A model missing there makes a cost NaN
-// rather than wrong.
-// row: one stored answer, including the agent's token usage.
-// Returns what those calls cost, in dollars.
+/**
+ * Prices live in api/pricing.ts. A model missing there makes a cost NaN rather than wrong.
+ *
+ * @param row - One stored answer, including the agent's token usage.
+ * @returns What those calls cost, in dollars.
+ */
 export function agentCost(row: AnswerRow): number {
   return row.answer.usage.reduce((sum, usage) => sum + (callCost(usage) ?? NaN), 0);
 }
 
-// What the judge spent on one graded answer.
-// row: one graded answer, including each judge call's token usage.
-// includeCached: count verdicts read from the cache at what they cost when
-// first made, which is what a fresh run would pay. Defaults to counting only calls made this time.
-// Returns the cost in dollars, or NaN when a model has no price.
+/**
+ * What the judge spent on one graded answer.
+ *
+ * @param row - One graded answer, including each judge call's token usage.
+ * @param includeCached - Count verdicts read from the cache at what they cost when first made,
+ * which is what a fresh run would pay. Defaults to counting only calls made this time.
+ * @returns The cost in dollars, or NaN when a model has no price.
+ */
 export function judgeCost(row: GradeRow, includeCached = false): number {
   return row.judge_usage
     .filter((usage) => includeCached || !usage.cached)
     .reduce((sum, usage) => sum + (callCost(usage) ?? NaN), 0);
 }
 
-// Read one JSONL log, or an empty list when the file is absent.
-// file: the path to the log.
-// Returns one parsed record per non-blank line.
+/**
+ * Reads one JSONL log, or an empty list when the file is absent.
+ *
+ * @param file - The path to the log.
+ * @returns One parsed record per non-blank line.
+ */
 export function readJsonl<T = unknown>(file: string): T[] {
   if (!fs.existsSync(file)) {
     return [];
@@ -71,10 +79,14 @@ interface Stat {
   margin: number;
 }
 
-// Mean of one metric over graded answers, with a normal-approximation 95% interval.
-// rows: the graded answers. Scores that do not apply are left out.
-// metric: which score to average.
-// Returns the mean, how many scores went into it, and half the width of the interval, or null when none apply.
+/**
+ * Mean of one metric over graded answers, with a normal-approximation 95% interval.
+ *
+ * @param rows - The graded answers. Scores that do not apply are left out.
+ * @param metric - Which score to average.
+ * @returns The mean, how many scores went into it, and half the width of the interval, or null when
+ * none apply.
+ */
 function stat(rows: GradeRow[], metric: MetricId): Stat | null {
   const values = rows
     .map((row) => row.metrics[metric])
@@ -91,10 +103,15 @@ function stat(rows: GradeRow[], metric: MetricId): Stat | null {
   return { mean, n: values.length, margin: 1.96 * Math.sqrt(variance / values.length) };
 }
 
-// Format one mean as a table cell.
-// value: the mean, or null when the metric did not apply.
-// withMargin: include the interval when more than one score was averaged. Defaults to including it.
-// Returns the percent and the count, with the interval when asked, or an em dash when there is no score.
+/**
+ * Formats one mean as a table cell.
+ *
+ * @param value - The mean, or null when the metric did not apply.
+ * @param withMargin - Include the interval when more than one score was averaged. Defaults to
+ * including it.
+ * @returns The percent and the count, with the interval when asked, or an em dash when there is no
+ * score.
+ */
 function cell(value: Stat | null, withMargin = true): string {
   if (!value) {
     return "—";
@@ -106,9 +123,12 @@ function cell(value: Stat | null, withMargin = true): string {
     : `${mean} (${value.n})`;
 }
 
-// Name the judge prompt versions that graded a run.
-// judge: the judge settings stored on the run.
-// Returns one version per prompt, or the single version stored by older runs.
+/**
+ * Names the judge prompt versions that graded a run.
+ *
+ * @param judge - The judge settings stored on the run.
+ * @returns One version per prompt, or the single version stored by older runs.
+ */
 function promptVersions(judge: NonNullable<RunInfo["judge"]>): string {
   if (judge.prompt_versions) {
     return Object.entries(judge.prompt_versions)
@@ -119,9 +139,12 @@ function promptVersions(judge: NonNullable<RunInfo["judge"]>): string {
   return `prompt v${judge.prompt_version}`;
 }
 
-// Format a dollar cost for a report.
-// value: the cost. NaN means the price table had no entry for the model.
-// Returns the amount, four decimals under a dollar and two otherwise, or "unknown".
+/**
+ * Formats a dollar cost for a report.
+ *
+ * @param value - The cost. NaN means the price table had no entry for the model.
+ * @returns The amount, four decimals under a dollar and two otherwise, or "unknown".
+ */
 function money(value: number): string {
   return Number.isNaN(value) ? "unknown" : `$${value.toFixed(value < 1 ? 4 : 2)}`;
 }
@@ -134,9 +157,12 @@ interface LoadedRun {
   errors: { case_id: string; rep: number; failure_class: string; error: string }[];
 }
 
-// Read one run's metadata, answers, grades, and failed attempts.
-// dir: the run directory.
-// Returns the directory plus those four records.
+/**
+ * Reads one run's metadata, answers, grades, and failed attempts.
+ *
+ * @param dir - The run directory.
+ * @returns The directory plus those four records.
+ */
 function loadRun(dir: string): LoadedRun {
   return {
     dir,
@@ -147,9 +173,13 @@ function loadRun(dir: string): LoadedRun {
   };
 }
 
-// Add up what a run cost the agent and the judge.
-// run: the loaded answers and grades.
-// Returns the agent total, what this grading spent, and what the judge calls cost when they were first made.
+/**
+ * Adds up what a run cost the agent and the judge.
+ *
+ * @param run - The loaded answers and grades.
+ * @returns The agent total, what this grading spent, and what the judge calls cost when they were
+ * first made.
+ */
 function costs(run: LoadedRun) {
   const agent = run.answers.reduce((sum, row) => sum + agentCost(row), 0);
   const judgeSpent = run.grades.reduce((sum, row) => sum + judgeCost(row), 0);
@@ -160,10 +190,12 @@ function costs(run: LoadedRun) {
 
 const METRIC_IDS = METRICS.map(([id]) => id);
 
-// One run's scores, its failures, and enough of each failing answer to see
-// why, for error analysis.
-// dir: the run directory to read, and to write the report into.
-// Writes report.md in that directory.
+/**
+ * One run's scores, its failures, and enough of each failing answer to see why, for error analysis.
+ * Writes report.md in that directory.
+ *
+ * @param dir - The run directory to read, and to write the report into.
+ */
 export function writeReport(dir: string) {
   const run = loadRun(dir);
   const { info, answers, grades, errors } = run;
@@ -303,11 +335,14 @@ export function writeReport(dir: string) {
   fs.writeFileSync(path.join(dir, "report.md"), lines.join("\n"));
 }
 
-// Every graded run, oldest first, so a change in one number can be read
-// against what changed in the note.
-// runsDir: the directory of run folders. A missing directory, or one with nothing graded, still writes the header.
-// out: where the summary file goes.
-// Writes that markdown file.
+/**
+ * Every graded run, oldest first, so a change in one number can be read against what changed in the
+ * note. Writes that markdown file.
+ *
+ * @param runsDir - The directory of run folders. A missing directory, or one with nothing graded,
+ * still writes the header.
+ * @param out - Where the summary file goes.
+ */
 export function writeSummary(runsDir: string, out: string) {
   const runs = fs.existsSync(runsDir)
     ? fs
@@ -318,13 +353,19 @@ export function writeSummary(runsDir: string, out: string) {
         .filter((run) => run.grades.length)
     : [];
 
-  // Link target from the summary file to one run's report.
-  // dir: that run's directory.
-  // Returns the relative path.
+  /**
+   * Links target from the summary file to one run's report.
+   *
+   * @param dir - That run's directory.
+   * @returns The relative path.
+   */
   const relative = (dir: string) => path.relative(path.dirname(out), path.join(dir, "report.md"));
-  // Markdown rows comparing runs on one slice of their grades.
-  // pick: which graded answers from a run belong in its row.
-  // Returns the table lines, header included.
+  /**
+   * Markdown rows comparing runs on one slice of their grades.
+   *
+   * @param pick - Which graded answers from a run belong in its row.
+   * @returns The table lines, header included.
+   */
   const table = (pick: (run: LoadedRun) => GradeRow[]) => [
     `| run | note | commit | n | ${METRIC_IDS.join(" | ")} | cost |`,
     `| --- | --- | --- | --- | ${METRIC_IDS.map(() => "---").join(" | ")} | --- |`,

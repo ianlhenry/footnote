@@ -63,8 +63,10 @@ const DECLINE_TEXT: Record<DeclineReason, string> = {
 };
 
 export class MissingKeyError extends Error {
-  // Create the error raised when a question is asked with no Anthropic key.
-  // Sets the message to say ANTHROPIC_API_KEY is not set.
+  /**
+   * Creates the error raised when a question is asked with no Anthropic key. Sets the message to
+   * say ANTHROPIC_API_KEY is not set.
+   */
   constructor() {
     super("ANTHROPIC_API_KEY is not set");
   }
@@ -72,8 +74,12 @@ export class MissingKeyError extends Error {
 
 let client: Anthropic | undefined;
 
-// Return the shared Anthropic client, creating it from the API key on first use.
-// Throws MissingKeyError when ANTHROPIC_API_KEY is unset or blank.
+/**
+ * Returns the shared Anthropic client, creating it from the API key on first use.
+ *
+ * @returns The shared client.
+ * @throws {MissingKeyError} If ANTHROPIC_API_KEY is unset or blank.
+ */
 function getClient(): Anthropic {
   const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
   if (!apiKey) {
@@ -84,9 +90,12 @@ function getClient(): Anthropic {
   return client;
 }
 
-// Turn one Claude reply's token counts into the usage stored with an answer.
-// response: the message Claude returned, including its model and token counts.
-// Returns those counts plus the dollar cost of the call.
+/**
+ * Turns one Claude reply's token counts into the usage stored with an answer.
+ *
+ * @param response - The message Claude returned, including its model and token counts.
+ * @returns Those counts plus the dollar cost of the call.
+ */
 function usageOf(response: Anthropic.Message): AnswerUsage {
   const counts = {
     model: response.model,
@@ -102,10 +111,13 @@ function usageOf(response: Anthropic.Message): AnswerUsage {
 
 const POLLSTERS: Record<string, string> = { pew: "Pew Research Center", marist: "Marist Poll" };
 
-// The passage, then the surveys its page reports on, as separate blocks so a
-// citation of a sample size or margin points at the survey line alone.
-// passage: one retrieved survey passage, including its document and survey lines.
-// Returns a citable result whose title names the pollster and publish date.
+/**
+ * The passage, then the surveys its page reports on, as separate blocks so a citation of a sample
+ * size or margin points at the survey line alone.
+ *
+ * @param passage - One retrieved survey passage, including its document and survey lines.
+ * @returns A citable result whose title names the pollster and publish date.
+ */
 function passageResult(passage: Passage): ToolResult {
   const ref = {
     kind: "passage" as const,
@@ -133,9 +145,12 @@ function passageResult(passage: Passage): ToolResult {
   };
 }
 
-// Wrap a tool result as a Claude search-result block with citations turned on.
-// result: a passage or FEC record already shaped for citation.
-// Returns the block Claude cites by its position in the conversation.
+/**
+ * Wraps a tool result as a Claude search-result block with citations turned on.
+ *
+ * @param result - A passage or FEC record already shaped for citation.
+ * @returns The block Claude cites by its position in the conversation.
+ */
 function searchResultBlock(result: ToolResult): Anthropic.SearchResultBlockParam {
   return {
     type: "search_result",
@@ -146,10 +161,14 @@ function searchResultBlock(result: ToolResult): Anthropic.SearchResultBlockParam
   };
 }
 
-// Answer a question from the closest survey passages and any FEC tools Claude calls.
-// question: what the user asked. It is embedded for the passage search and sent to Claude.
-// Returns the reply, whether it was answered or refused, citations, retrieved records,
-// tool calls, and token usage for each Claude call.
+/**
+ * Answers a question from the closest survey passages and any FEC tools Claude calls.
+ *
+ * @param question - What the user asked. It is embedded for the passage search and sent to Claude.
+ * @returns The reply, whether it was answered or refused, citations, retrieved records, tool calls,
+ * and token usage for each Claude call.
+ * @throws {Error} If the model returns no reply.
+ */
 export async function answer(question: string): Promise<Answer> {
   const passages = await searchPassages(question, TOP_K);
 
@@ -260,12 +279,15 @@ export async function answer(question: string): Promise<Answer> {
   };
 }
 
-// Turn a reply's text blocks into citations. Each search-result location picks
-// the source block it points at.
-// content: the model's reply. Only text blocks carry citations.
-// results: the passage and FEC results, in the order they were shown to the model.
-// Returns one citation per location that names a real result and block. Other
-// citation kinds, and indexes past the end, are left out.
+/**
+ * Turns a reply's text blocks into citations. Each search-result location picks the source block it
+ * points at.
+ *
+ * @param content - The model's reply. Only text blocks carry citations.
+ * @param results - The passage and FEC results, in the order they were shown to the model.
+ * @returns One citation per location that names a real result and block. Other citation kinds, and
+ * indexes past the end, are left out.
+ */
 export function citationsFrom(
   content: Anthropic.ContentBlock[],
   results: ToolResult[],
@@ -300,9 +322,12 @@ export function citationsFrom(
   return citations;
 }
 
-// "FEC candidate summary · S6IA00314" for an FEC record.
-// ref: the source a citation points at, a passage or one FEC row.
-// Returns "Survey report" for a passage, otherwise the FEC table name and record id.
+/**
+ * "FEC candidate summary · S6IA00314" for an FEC record.
+ *
+ * @param ref - The source a citation points at, a passage or one FEC row.
+ * @returns "Survey report" for a passage, otherwise the FEC table name and record id.
+ */
 function labelFor(ref: SourceRef): string {
   if (ref.kind === "passage") {
     return "Survey report";
@@ -311,11 +336,14 @@ function labelFor(ref: SourceRef): string {
   return `FEC ${ref.table.replace(/^fec_/, "").replaceAll("_", " ")} · ${ref.id}`;
 }
 
-// One item per record a result drew on. A passage's text and survey line
-// are one item; an FEC result has one per table row.
-// result: a passage or FEC search result, possibly with several text blocks.
-// score: how close a passage was to the question, or null for an FEC result.
-// Returns those records, joining blocks that share a source into one item.
+/**
+ * One item per record a result drew on. A passage's text and survey line are one item; an FEC
+ * result has one per table row.
+ *
+ * @param result - A passage or FEC search result, possibly with several text blocks.
+ * @param score - How close a passage was to the question, or null for an FEC result.
+ * @returns Those records, joining blocks that share a source into one item.
+ */
 function retrievedItems(result: ToolResult, score: number | null): RetrievedItem[] {
   const items: RetrievedItem[] = [];
   for (const block of result.blocks) {

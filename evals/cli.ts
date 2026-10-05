@@ -92,10 +92,11 @@ Options:
   --resume RUN         Continue a run that stopped, skipping answers already stored.
   --yes                Allow calls that cost money.`;
 
-// Dispatch the eval CLI command from the process arguments.
-// Prints the usage text and returns when --help is set or no command is given.
-// Writes the files that command produces. Exits through fail when the command
-// or its flags are invalid.
+/**
+ * Dispatches the eval CLI command from the process arguments. Prints the usage text and returns
+ * when --help is set or no command is given. Writes the files that command produces. Exits through
+ * fail when the command or its flags are invalid.
+ */
 async function main() {
   const { values, positionals } = parseArgs({
     allowPositionals: true,
@@ -171,10 +172,13 @@ const JudgeConfigSchema = z.object({
   effort: z.enum(["low", "medium", "high"]),
 });
 
-// Load cases.json and keep the cases this command should run.
-// only: comma-separated case ids to keep. Unknown ids exit the process.
-// verifiedOnly: when true, drop cases that are not marked verified.
-// Returns the selected cases. Exits when none remain.
+/**
+ * Loads cases.json and keeps the cases this command should run.
+ *
+ * @param only - Comma-separated case ids to keep. Unknown ids exit the process.
+ * @param verifiedOnly - When true, drops cases that are not marked verified.
+ * @returns The selected cases. Exits when none remain.
+ */
 function selectCases(only: string | undefined, verifiedOnly: boolean): Case[] {
   let cases = loadCases();
   if (only) {
@@ -195,12 +199,15 @@ function selectCases(only: string | undefined, verifiedOnly: boolean): Case[] {
   return cases;
 }
 
-// Print how many calls a run of these cases would make, without calling anything.
-// cases: the cases that would be asked.
-// reps: how many times each case would be asked.
-// judgeConfig: the model and effort the judge would use.
-// Prints the case counts and the expected request counts, and a cost estimate
-// from the last graded run when one exists.
+/**
+ * Prints how many calls a run of these cases would make, without calling anything. Prints the case
+ * counts and the expected request counts, and a cost estimate from the last graded run when one
+ * exists.
+ *
+ * @param cases - The cases that would be asked.
+ * @param reps - How many times each case would be asked.
+ * @param judgeConfig - The model and effort the judge would use.
+ */
 async function plan(cases: Case[], reps: number, judgeConfig: JudgeConfig) {
   const verified = cases.filter((item) => item.verified).length;
   const byCategory = new Map<string, number>();
@@ -236,9 +243,12 @@ async function plan(cases: Case[], reps: number, judgeConfig: JudgeConfig) {
   }
 }
 
-// Average the cost of the newest graded run, agent and judge together.
-// Returns the run directory name and dollars per stored answer, or null when
-// no graded run has answers.
+/**
+ * Averages the cost of the newest graded run, agent and judge together.
+ *
+ * @returns The run directory name and dollars per stored answer, or null when no graded run has
+ * answers.
+ */
 function measuredCost(): { run: string; perAnswer: number } | null {
   if (!fs.existsSync(RUNS_DIR)) {
     return null;
@@ -265,16 +275,17 @@ function measuredCost(): { run: string; perAnswer: number } | null {
   return { run: last, perAnswer: total / answers.length };
 }
 
-// Ask every selected case and store the answers in a run directory.
-// dir: the run directory, new or resumed.
-// cases: the cases to ask. A resume only asks reps missing from answers.jsonl.
-// options.reps: how many times to ask each case.
-// options.concurrency: how many questions to ask at once.
-// options.timeoutS: seconds before one question fails.
-// options.url: where /api/chat is listening.
-// options.note: what changed. Unused when the directory already has a run.json.
-// Writes answers.jsonl, errors.jsonl, and run.json, and prints each result.
-// Exits when a resumed run's API hash no longer matches.
+/**
+ * Asks every selected case and stores the answers in a run directory. Writes answers.jsonl,
+ * errors.jsonl, and run.json, and prints each result. Exits when a resumed run's API hash no longer
+ * matches.
+ *
+ * @param dir - The run directory, new or resumed.
+ * @param cases - The cases to ask. A resume only asks reps missing from answers.jsonl.
+ * @param options - How many times to ask each case, how many questions to ask at once, seconds
+ * before one question fails, where /api/chat is listening, and what changed. The note is unused
+ * when the directory already has a run.json.
+ */
 async function askAll(
   dir: string,
   cases: Case[],
@@ -324,9 +335,10 @@ async function askAll(
   let next = 0;
   let failed = 0;
 
-  // Ask the next unclaimed question until the queue is empty.
-  // Appends a success to answers.jsonl or a failure to errors.jsonl.
-  // Counts failures on this pass.
+  /**
+   * Asks the next unclaimed question until the queue is empty. Appends a success to answers.jsonl
+   * or a failure to errors.jsonl. Counts failures on this pass.
+   */
   async function worker() {
     while (next < tasks.length) {
       const { item, rep } = tasks[next++];
@@ -374,11 +386,13 @@ async function askAll(
 }
 
 class AskError extends Error {
-  // Record why one question failed.
-  // kind: which failure this was: timeout, http, contract, network, or error.
-  // message: the text printed with the failure.
-  // retries: how many times this question was retried before it failed.
-  // Sets the error message and those two fields.
+  /**
+   * Records why one question failed. Sets the error message and those two fields.
+   *
+   * @param kind - Which failure this was: timeout, http, contract, network, or error.
+   * @param message - The text printed with the failure.
+   * @param retries - How many times this question was retried before it failed.
+   */
   constructor(
     readonly kind: "timeout" | "http" | "contract" | "network" | "error",
     message: string,
@@ -388,10 +402,12 @@ class AskError extends Error {
   }
 }
 
-// An empty question gets a 400 without calling Claude, so it shows the server
-// is up and is the API this runner expects.
-// url: where /api/chat is listening.
-// Exits when that server is unreachable or answers with any status but 400.
+/**
+ * An empty question gets a 400 without calling Claude, so it shows the server is up and is the API
+ * this runner expects. Exits when that server is unreachable or answers with any status but 400.
+ *
+ * @param url - Where /api/chat is listening.
+ */
 async function preflight(url: string) {
   try {
     const response = await fetch(`${url}/api/chat`, {
@@ -407,12 +423,16 @@ async function preflight(url: string) {
   }
 }
 
-// Ask one question through /api/chat and parse the last message.
-// url: where /api/chat is listening.
-// question: the case question, sent as the message content.
-// timeoutS: seconds allowed for this question, including retries.
-// Returns the parsed answer, the successful attempt's latency, and the retry count.
-// Throws AskError on timeout, network failure, a non-ok status, or a body that breaks the contract.
+/**
+ * Asks one question through /api/chat and parses the last message.
+ *
+ * @param url - Where /api/chat is listening.
+ * @param question - The case question, sent as the message content.
+ * @param timeoutS - Seconds allowed for this question, including retries.
+ * @returns The parsed answer, the successful attempt's latency, and the retry count.
+ * @throws {AskError} If the request times out, the network fails, the status is not ok, or the body
+ * breaks the contract.
+ */
 async function askOne(url: string, question: string, timeoutS: number) {
   const deadline = Date.now() + timeoutS * 1000;
   let retries = 0;
@@ -468,10 +488,13 @@ async function askOne(url: string, question: string, timeoutS: number) {
   }
 }
 
-// Wait before retrying a question, longer after each attempt, and never past the deadline.
-// attempt: how many attempts have already failed, starting at 0.
-// deadline: the millisecond timestamp when the question must stop.
-// Throws AskError when the wait would run past the deadline.
+/**
+ * Waits before retrying a question, longer after each attempt, and never past the deadline.
+ *
+ * @param attempt - How many attempts have already failed, starting at 0.
+ * @param deadline - The millisecond timestamp when the question must stop.
+ * @throws {AskError} If the wait would run past the deadline.
+ */
 async function backoff(attempt: number, deadline: number) {
   const delay = Math.min(30_000, 1000 * 2 ** attempt) * (0.5 + Math.random());
   if (Date.now() + delay >= deadline) {
@@ -481,13 +504,16 @@ async function backoff(attempt: number, deadline: number) {
   await new Promise((resolve) => setTimeout(resolve, delay));
 }
 
-// Grade every stored answer in a run and write the report.
-// dir: the run directory, which holds run.json and answers.jsonl.
-// judgeConfig: the model and effort the judge uses.
-// allowSpend: when false, exit instead of calling the judge for a cache miss.
-// concurrency: how many answers to grade at once.
-// Writes grades.jsonl, updates run.json, and writes the run report and results summary.
-// Prints the grade count. Sets the process exit code to 1 when any grade fails.
+/**
+ * Grades every stored answer in a run and writes the report. Writes grades.jsonl, updates run.json,
+ * and writes the run report and results summary. Prints the grade count. Sets the process exit code
+ * to 1 when any grade fails.
+ *
+ * @param dir - The run directory, which holds run.json and answers.jsonl.
+ * @param judgeConfig - The model and effort the judge uses.
+ * @param allowSpend - When false, exits instead of calling the judge for a cache miss.
+ * @param concurrency - How many answers to grade at once.
+ */
 async function gradeRun(
   dir: string,
   judgeConfig: JudgeConfig,
@@ -531,8 +557,10 @@ async function gradeRun(
   const failures: string[] = [];
   let next = 0;
 
-  // Grade the next unclaimed answer until the queue is empty.
-  // Stores each grade in its original order, and records a failure string when grading throws.
+  /**
+   * Grades the next unclaimed answer until the queue is empty. Stores each grade in its original
+   * order, and records a failure string when grading throws.
+   */
   async function worker() {
     while (next < rows.length) {
       const index = next++;
@@ -566,13 +594,18 @@ async function gradeRun(
   }
 }
 
-// Write a readable sheet of every case.
-// Writes evals/cases.md from cases.json and prints how many cases it contains.
+/**
+ * Writes a readable sheet of every case. Writes evals/cases.md from cases.json and prints how many
+ * cases it contains.
+ */
 function review() {
   const cases = loadCases();
-  // Wrap text in a markdown fence longer than any backtick run inside it.
-  // text: the question text to fence.
-  // Returns the fenced block, using at least three backticks.
+  /**
+   * Wraps text in a markdown fence longer than any backtick run inside it.
+   *
+   * @param text - The question text to fence.
+   * @returns The fenced block, using at least three backticks.
+   */
   const fence = (text: string) => {
     const longest = Math.max(2, ...(text.match(/`+/g) ?? []).map((run) => run.length));
     const ticks = "`".repeat(longest + 1);
@@ -630,9 +663,13 @@ function review() {
   console.log(`Wrote evals/cases.md (${cases.length} cases).`);
 }
 
-// Build a new run directory name from the time and the note.
-// note: what changed. Its words become a slug of at most 40 characters, cut on a word boundary.
-// Returns the directory path under the runs directory. Does not create it.
+/**
+ * Builds a new run directory name from the time and the note.
+ *
+ * @param note - What changed. Its words become a slug of at most 40 characters, cut on a word
+ * boundary.
+ * @returns The directory path under the runs directory. Does not create it.
+ */
 function newRunDir(note: string): string {
   const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, "-");
   // Cut at a word boundary so the name does not end mid-word or on a hyphen.
@@ -651,9 +688,12 @@ function newRunDir(note: string): string {
   return path.join(RUNS_DIR, slug ? `${stamp}-${slug}` : stamp);
 }
 
-// Find a stored run from an id or a path.
-// target: a directory name under the runs directory, or a path to a run directory.
-// Returns that directory. Exits when it has no run.json.
+/**
+ * Finds a stored run from an id or a path.
+ *
+ * @param target - A directory name under the runs directory, or a path to a run directory.
+ * @returns That directory. Exits when it has no run.json.
+ */
 function resolveRun(target: string): string {
   const dir = fs.existsSync(path.join(RUNS_DIR, target))
     ? path.join(RUNS_DIR, target)
@@ -665,13 +705,19 @@ function resolveRun(target: string): string {
   return dir;
 }
 
-// Record the git commit and whether the working tree is dirty.
-// Returns the short HEAD commit and a dirty flag. Changes under evals/runs and
-// evals/results.md do not count as dirty.
+/**
+ * Records the git commit and whether the working tree is dirty.
+ *
+ * @returns The short HEAD commit and a dirty flag. Changes under evals/runs and evals/results.md do
+ * not count as dirty.
+ */
 function gitState() {
-  // Run one git command in the repo root and return its trimmed stdout.
-  // args: the git arguments, without the program name.
-  // Returns the command's stdout with surrounding whitespace removed.
+  /**
+   * Runs one git command in the repo root and returns its trimmed stdout.
+   *
+   * @param args - The git arguments, without the program name.
+   * @returns The command's stdout with surrounding whitespace removed.
+   */
   const git = (...args: string[]) =>
     execFileSync("git", args, { cwd: ROOT, encoding: "utf8" }).trim();
   // evals/ changes on every run, so only the rest of the tree counts as dirty.
@@ -680,8 +726,11 @@ function gitState() {
   return { commit: git("rev-parse", "--short", "HEAD"), dirty };
 }
 
-// Hash the TypeScript sources under api/ so a resume can tell the agent changed.
-// Returns the first 12 hex characters of that hash. File names are included, in sorted order.
+/**
+ * Hash the TypeScript sources under api/ so a resume can tell the agent changed.
+ *
+ * @returns The first 12 hex characters of that hash. File names are included, in sorted order.
+ */
 function apiSha(): string {
   const dir = path.join(ROOT, "api");
   const hash = crypto.createHash("sha256");
@@ -699,9 +748,12 @@ function apiSha(): string {
   return hash.digest("hex").slice(0, 12);
 }
 
-// The corpus the answers were drawn from. Chunking or embedding changes show
-// up here as a different passage count or model.
-// Returns the document and passage counts, or null when the database is missing or unreadable.
+/**
+ * The corpus the answers were drawn from. Chunking or embedding changes show up here as a different
+ * passage count or model.
+ *
+ * @returns The document and passage counts, or null when the database is missing or unreadable.
+ */
 function corpusState(): RunInfo["corpus"] {
   const file = process.env.DATABASE_PATH
     ? path.resolve(ROOT, process.env.DATABASE_PATH)
@@ -712,9 +764,12 @@ function corpusState(): RunInfo["corpus"] {
 
   const db = new DatabaseSync(file, { readOnly: true });
   try {
-    // Count the rows in one corpus table.
-    // table: documents or passages.
-    // Returns that row count.
+    /**
+     * Counts the rows in one corpus table.
+     *
+     * @param table - Documents or passages.
+     * @returns That row count.
+     */
     const count = (table: string) =>
       Number((db.prepare(`SELECT count(*) AS n FROM ${table}`).get() as { n: number }).n);
     return { documents: count("documents"), passages: count("passages") };
@@ -725,25 +780,34 @@ function corpusState(): RunInfo["corpus"] {
   }
 }
 
-// Write one JSON file, pretty-printed, with a trailing newline.
-// file: the path to write.
-// value: the value to serialize.
-// Writes that file, replacing whatever was there.
+/**
+ * Writes one JSON file, pretty-printed, with a trailing newline. Writes that file, replacing
+ * whatever was there.
+ *
+ * @param file - The path to write.
+ * @param value - The value to serialize.
+ */
 function writeJson(file: string, value: unknown) {
   fs.writeFileSync(file, JSON.stringify(value, null, 2) + "\n");
 }
 
-// Hash bytes down to the short id stored on a run.
-// data: the bytes to hash.
-// Returns the first 12 hex characters of the SHA-256 digest.
+/**
+ * Hash bytes down to the short id stored on a run.
+ *
+ * @param data - The bytes to hash.
+ * @returns The first 12 hex characters of the SHA-256 digest.
+ */
 function sha(data: Buffer): string {
   return crypto.createHash("sha256").update(data).digest("hex").slice(0, 12);
 }
 
-// Parse a CLI flag as a whole number of at least 1.
-// value: the flag's text.
-// flag: the flag name, named in the error when the text is not valid.
-// Returns that number. Exits otherwise.
+/**
+ * Parse a CLI flag as a whole number of at least 1.
+ *
+ * @param value - The flag's text.
+ * @param flag - The flag name, named in the error when the text is not valid.
+ * @returns That number. Exits when the text is not a positive whole number.
+ */
 function positiveInt(value: string, flag: string): number {
   const number = Number(value);
   if (!Number.isInteger(number) || number < 1) {
@@ -753,9 +817,11 @@ function positiveInt(value: string, flag: string): number {
   return number;
 }
 
-// Print an error and stop the process.
-// message: the text written to stderr.
-// Exits with status 2.
+/**
+ * Prints an error and stops the process. Exits with status 2.
+ *
+ * @param message - The text written to stderr.
+ */
 function fail(message: string): never {
   console.error(message);
   process.exit(2);

@@ -9,8 +9,10 @@ const EMBEDDING_DIMENSION = 1024;
 const VOYAGE_URL = "https://api.voyageai.com/v1/embeddings";
 
 export class MissingVoyageKeyError extends Error {
-  // Create the error raised when a search runs with no Voyage key.
-  // Sets the message to say VOYAGE_API_KEY is not set.
+  /**
+   * Creates the error raised when a search runs with no Voyage key. Sets the message to say
+   * VOYAGE_API_KEY is not set.
+   */
   constructor() {
     super("VOYAGE_API_KEY is not set");
   }
@@ -33,10 +35,15 @@ export interface Passage {
   surveys: string[];
 }
 
-// Find the passages closest in meaning to a question.
-// question: the user's question. It is embedded with Voyage before the search.
-// k: how many passages to return.
-// Returns those passages, closest first, with their text and document details.
+/**
+ * Finds the passages closest in meaning to a question.
+ *
+ * @param question - The user's question. It is embedded with Voyage before the search.
+ * @param k - How many passages to return.
+ * @returns Those passages, closest first, with their text and document details.
+ * @throws {MissingVoyageKeyError} If VOYAGE_API_KEY is unset.
+ * @throws {VoyageError} If the embedding request fails or the vector has the wrong length.
+ */
 export async function searchPassages(question: string, k: number): Promise<Passage[]> {
   const vector = await embedQuery(question);
   const conn = readOnlyDatabase();
@@ -94,10 +101,13 @@ export async function searchPassages(question: string, k: number): Promise<Passa
   });
 }
 
-// Load a one-line description of each survey the given documents report on.
-// conn: the database holding surveys and the document-to-survey links.
-// documentIds: the documents whose survey lines are needed.
-// Returns those lines keyed by document id, in field-end order.
+/**
+ * Loads a one-line description of each survey the given documents report on.
+ *
+ * @param conn - The database holding surveys and the document-to-survey links.
+ * @param documentIds - The documents whose survey lines are needed.
+ * @returns Those lines keyed by document id, in field-end order.
+ */
 function surveyLines(conn: DatabaseSync, documentIds: number[]): Map<number, string[]> {
   const lines = new Map<number, string[]>();
   if (!documentIds.length) {
@@ -143,11 +153,14 @@ function surveyLines(conn: DatabaseSync, documentIds: number[]): Map<number, str
   return lines;
 }
 
-// Embed a question with Voyage so it can be matched against stored passages.
-// text: the question to embed.
-// Returns the query vector at the same model and width the ingest stored.
-// Throws MissingVoyageKeyError when the key is unset, and VoyageError when the
-// request fails or the vector has the wrong length.
+/**
+ * Embeds a question with Voyage so it can be matched against stored passages.
+ *
+ * @param text - The question to embed.
+ * @returns The query vector at the same model and width the ingest stored.
+ * @throws {MissingVoyageKeyError} If VOYAGE_API_KEY is unset.
+ * @throws {VoyageError} If the request fails or the vector has the wrong length.
+ */
 async function embedQuery(text: string): Promise<Float32Array> {
   const apiKey = process.env.VOYAGE_API_KEY?.trim();
   if (!apiKey) {

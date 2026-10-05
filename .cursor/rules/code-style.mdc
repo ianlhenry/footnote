@@ -48,18 +48,22 @@ const response = await fetch("/api/chat", { method: "POST", body });
 
 ## Document every function
 
-Every named function needs a comment directly above it: function declarations, named function expressions, class methods, and function components. Say what it does, what each input means, and what it returns or changes. A few lines is enough. Skip anonymous callbacks passed to `map`, `filter`, `forEach`, and event handlers.
+Every named function needs a JSDoc block directly above it: function declarations, named function expressions, class methods, and function components. Skip anonymous callbacks passed to `map`, `filter`, `forEach`, and event handlers.
 
-Do not restate the types. Say what the values mean, and for a `void` function say what it writes, renders, or sends.
+The first line says what the function does. Then one `@param` per input, a `@returns` line, and a `@throws` line for each error it raises. Descriptions say what the values mean. For a function that returns nothing, leave out `@returns` and say what it writes, renders, or sends in the first line.
 
 ```ts
-// Bad: nothing above the function.
+// Bad: nothing above the function, or a line comment.
 export async function searchPassages(question: string, k: number): Promise<Passage[]> {
 
 // Good
-// Find the passages closest in meaning to a question.
-// question: the user's question. It is embedded with Voyage before the search.
-// k: how many passages to return.
-// Returns those passages, closest first, with their text and document details.
+/**
+ * Finds the passages closest in meaning to a question.
+ *
+ * @param question - The user's question, embedded with the same model as the corpus.
+ * @param k - How many passages to return.
+ * @returns Passages ordered from nearest to farthest.
+ * @throws {VoyageError} If the embedding request fails.
+ */
 export async function searchPassages(question: string, k: number): Promise<Passage[]> {
 ```

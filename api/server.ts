@@ -13,8 +13,11 @@ if (fs.existsSync(envFile)) {
 
 let nextId = 1;
 
-// Take the next message id for a chat response, then advance the counter.
-// Returns that id. The first call returns 1.
+/**
+ * Takes the next message id for a chat response, then advance the counter.
+ *
+ * @returns That id. The first call returns 1.
+ */
 function takeId(): number {
   const id = nextId;
   nextId += 1;
