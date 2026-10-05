@@ -1,12 +1,5 @@
 import type Anthropic from "@anthropic-ai/sdk";
-import type { DeclineReason } from "./contract";
-import type { FECToolResult } from "./fec";
-
-const DECLINE_REASONS = [
-  "not_loaded",
-  "out_of_scope",
-  "opinion",
-] as const satisfies readonly DeclineReason[];
+import { DECLINE_REASONS, type DeclineReason } from "../contract";
 
 export const DECLINE_TOOL: Anthropic.Tool = {
   name: "decline",
@@ -25,31 +18,11 @@ export function tryGetDeclineReason(response: Anthropic.Messages.Message): Decli
     (block): block is Anthropic.ToolUseBlock =>
       block.type === "tool_use" && block.name === "decline",
   );
+
   if (declineToolUse) {
     const declineToolUseInput = declineToolUse.input as { reason?: string };
     return DECLINE_REASONS.find((known) => known === declineToolUseInput.reason) ?? "not_loaded";
   }
 
   return null;
-}
-
-// Anthropic types this as unknown since it could be anything; wrangle it to a Record.
-export function toolInput(input: unknown): Record<string, unknown> {
-  if (typeof input === "object" && input !== null && !Array.isArray(input)) {
-    return input as Record<string, unknown>;
-  }
-  return {};
-}
-
-// Convert the tool result to an
-export function toSearchResult(toolResult: FECToolResult): Anthropic.SearchResultBlockParam {
-  return {
-    type: "search_result" as const,
-    source: toolResult.source,
-    title: toolResult.title,
-    content: toolResult.blocks.map((block) => ({
-      type: "text" as const,
-      text: block.text,
-    })),
-  };
 }

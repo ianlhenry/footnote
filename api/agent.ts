@@ -1,14 +1,13 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { Answer } from "./contract.ts";
-import { readOnlyDatabase } from "./db.ts";
-import { FEC_TOOLS, runFecTool } from "./fec.ts";
-import { DECLINE_TOOL, toolInput, toSearchResult, tryGetDeclineReason } from "./tools.ts";
+import { DECLINE_TOOL, tryGetDeclineReason } from "./tools/declineTool.ts";
+import { FEC_TOOLS, runFecTool } from "./tools/fecTool.ts";
 
 const ANTHROPIC_API_CONFIG = {
   MODEL: "claude-sonnet-5-5",
   MAX_TOKENS: 1024,
   MAX_TURNS_PER_QUESTION: 6,
-  TOP_K_PASSAGES: 8,
+  NUM_PASSAGES_TO_SEND: 8,
 };
 
 const TOOL_CHOICE_NONE_DISABLE_TOOLS = { tool_choice: { type: "none" as const } };
@@ -25,7 +24,14 @@ const SYSTEM: Anthropic.TextBlockParam[] = [
   { type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
 ];
 
-const TOOLS: Anthropic.Tool[] = [DECLINE_TOOL, ...FEC_TOOLS];
+const TOOL_DEFINITIONS: Anthropic.Tool[] = [DECLINE_TOOL, ...FEC_TOOLS];
+
+type ToolCallback = (
+  name: string,
+  input: Record<string, any>,
+) => Anthropic.SearchResultBlockParam[] | null;
+
+const TOOL_CALLBACKS: ToolCallback[] = [runFecTool];
 
 export class MissingKeyError extends Error {
   constructor() {
@@ -49,6 +55,14 @@ function getClient(): Anthropic {
 
   client ??= new Anthropic({ apiKey });
   return client;
+}
+
+// Anthropic types this as unknown since it could be anything; wrangle it to a Record.
+export function toolInput(input: unknown): Record<string, unknown> {
+  if (typeof input === "object" && input !== null && !Array.isArray(input)) {
+    return input as Record<string, unknown>;
+  }
+  return {};
 }
 
 /**
@@ -76,7 +90,7 @@ export async function answer(question: string): Promise<Answer> {
       model: ANTHROPIC_API_CONFIG.MODEL,
       max_tokens: ANTHROPIC_API_CONFIG.MAX_TOKENS,
       system: SYSTEM,
-      tools: TOOLS,
+      tools: TOOL_DEFINITIONS,
       messages: messages,
     };
 
@@ -111,15 +125,22 @@ export async function answer(question: string): Promise<Answer> {
       .filter((block): block is Anthropic.ToolUseBlock => block.type === "tool_use")
       .map((toolBlock) => {
         try {
-          const toolResults = runFecTool(
-            readOnlyDatabase(),
-            toolBlock.name,
-            toolInput(toolBlock.input),
-          );
+          let toolResult: Anthropic.SearchResultBlockParam[] | null = null;
+          for (const toolCallback of TOOL_CALLBACKS) {
+            toolResult = toolCallback(toolBlock.name, toolInput(toolBlock.input));
+            if (toolResult !== null) {
+              break;
+            }
+          }
+
+          if (toolResult === null) {
+            throw new Error("Unknown tool");
+          }
+
           return {
             type: "tool_result" as const,
             tool_use_id: toolBlock.id,
-            content: toolResults.map((toolResult) => toSearchResult(toolResult)),
+            content: toolResult,
           };
         } catch (error) {
           return {

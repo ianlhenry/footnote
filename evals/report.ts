@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { callCost } from "../api/pricing.ts";
+import { callCost } from "../api/util/pricing.ts";
 import { type AnswerRow, type GradeRow, METRICS, type MetricId } from "./grade.ts";
 import type { JudgeConfig } from "./judge.ts";
 
@@ -31,7 +31,7 @@ export interface RunInfo {
 }
 
 /**
- * Prices live in api/pricing.ts. A model missing there makes a cost NaN rather than wrong.
+ * Prices live in api/util/pricing.ts. A model missing there makes a cost NaN rather than wrong.
  *
  * @param row - One stored answer, including the agent's token usage.
  * @returns What those calls cost, in dollars.

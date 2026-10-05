@@ -4,7 +4,7 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { answer, MissingKeyError } from "./agent.ts";
 import { connect } from "./db.ts";
-import { MissingVoyageKeyError, VoyageError } from "./retrieval.ts";
+import { MissingVoyageKeyError, VoyageError } from "./util/embeddings.ts";
 
 const envFile = new URL("../.env", import.meta.url);
 if (fs.existsSync(envFile)) {

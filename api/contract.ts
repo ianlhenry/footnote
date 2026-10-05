@@ -16,7 +16,8 @@ export type AnswerStatus = "answered" | "refused";
 // Why an answer was refused. not_loaded: the data the question needs is not
 // in Footnote. out_of_scope: the request is not about polls or FEC data.
 // opinion: it asks for advice, a recommendation, or a prediction.
-export type DeclineReason = "not_loaded" | "out_of_scope" | "opinion";
+export const DECLINE_REASONS = ["not_loaded", "out_of_scope", "opinion"] as const;
+export type DeclineReason = (typeof DECLINE_REASONS)[number];
 
 export interface Citation {
   // The sentence or figure in the answer that this source supports.
@@ -51,7 +52,7 @@ export interface AnswerUsage {
   output_tokens: number;
   cache_read_input_tokens: number;
   cache_creation_input_tokens: number;
-  // Dollars at list price (api/pricing.ts), or null for an unpriced model.
+  // Dollars at list price (api/util/pricing.ts), or null for an unpriced model.
   cost_usd: number | null;
 }
 

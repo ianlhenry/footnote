@@ -1,5 +1,4 @@
 import type { DatabaseSync } from "node:sqlite";
-import type Anthropic from "@anthropic-ai/sdk";
 import type { SourceRef } from "./contract.ts";
 
 // FEC lookups Claude can call. Each matching record comes back as one
@@ -27,107 +26,12 @@ const STATUS: Record<string, string> = {
   P: "prior-cycle candidate",
 };
 const ICI: Record<string, string> = { I: "incumbent", C: "challenger", O: "open seat" };
-const MONEY_FIELDS = {
+export const MONEY_FIELDS = {
   receipts: "TTL_RECEIPTS",
   disbursements: "TTL_DISB",
   cash_on_hand: "COH_COP",
   individual_contributions: "TTL_INDIV_CONTRIB",
 } as const;
-
-export const FEC_TOOLS: Anthropic.Tool[] = [
-  {
-    name: "search_candidates",
-    description:
-      "Find federal candidates in the FEC's 2025-2026 candidate files by name, state, office, or party, with each one's 2026-cycle money totals (receipts, disbursements, cash on hand, individual contributions) and principal campaign committee. FEC names are LAST, FIRST and may differ from common usage: Ashley Hinson is filed as ARENHOLZ, ASHLEY HINSON and Ken Paxton as PAXTON, WARREN KENNETH JR. Each word you give must start a word of the filed name, so search a distinctive last name, or a first and last name. One person can have several candidate IDs, one per office sought.",
-    input_schema: {
-      type: "object",
-      properties: {
-        name: {
-          type: "string",
-          description: 'Words of the candidate\'s name, e.g. "Talarico" or "Sherrod Brown".',
-        },
-        state: {
-          type: "string",
-          description: "Two-letter postal code of the state the office is in.",
-        },
-        office: {
-          type: "string",
-          enum: ["H", "S", "P"],
-          description: "H House, S Senate, P President.",
-        },
-        party: { type: "string", description: "Three-letter FEC party code, e.g. DEM or REP." },
-      },
-      additionalProperties: false,
-    },
-  },
-  {
-    name: "rank_candidates",
-    description:
-      "List the candidates with the most money by one 2026-cycle total, optionally within one office, state, or party. Use for questions like who raised the most or who has the most cash on hand.",
-    input_schema: {
-      type: "object",
-      properties: {
-        by: {
-          type: "string",
-          enum: Object.keys(MONEY_FIELDS),
-          description: "The total to rank by.",
-        },
-        office: { type: "string", enum: ["H", "S", "P"] },
-        state: { type: "string", description: "Two-letter postal code." },
-        party: { type: "string", description: "Three-letter FEC party code." },
-        limit: {
-          type: "integer",
-          minimum: 1,
-          maximum: 20,
-          description: "How many to return. Default 5.",
-        },
-      },
-      required: ["by"],
-      additionalProperties: false,
-    },
-  },
-  {
-    name: "search_committees",
-    description:
-      "Find FEC committees (campaign committees, PACs, super PACs, party committees) by name or committee ID, with each one's 2026-cycle totals when the FEC summary file has them: receipts, disbursements, cash on hand, and independent expenditures. Individual donors and itemized contributions are not loaded, so this cannot say who gave to a committee.",
-    input_schema: {
-      type: "object",
-      properties: {
-        name: {
-          type: "string",
-          description: "Words of the committee name. Each must start a word of the filed name.",
-        },
-        committee_id: { type: "string", description: "A committee ID such as C00916288." },
-      },
-      additionalProperties: false,
-    },
-  },
-];
-/**
- * Runs one FEC tool Claude asked for.
- *
- * @param conn - The database holding the FEC tables.
- * @param name - Which tool: search_candidates, rank_candidates, or search_committees.
- * @param input - The arguments Claude supplied for that tool.
- * @returns The matching records as citable results.
- * @throws {Error} If the tool name is unknown or the arguments are missing or invalid.
- */
-export function runFecTool(
-  conn: DatabaseSync,
-  name: string,
-  input: Record<string, unknown>,
-): FECToolResult[] {
-  switch (name) {
-    case "search_candidates":
-      return searchCandidates(conn, input);
-    case "rank_candidates":
-      return rankCandidates(conn, input);
-    case "search_committees":
-      return searchCommittees(conn, input);
-    default:
-      throw new Error(`unknown tool ${name}`);
-  }
-}
 
 interface CandidateRow {
   CAND_ID: string;
