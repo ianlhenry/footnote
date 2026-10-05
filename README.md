@@ -5,6 +5,8 @@ Footnote is a research assistant for polling and campaign finance data:
 - Every claim links back to the exact passage or query result it came from, so you can check it before acting on it. 
 - When the data doesn't cover the question, it refuses and tells you what's missing.
 
+![Footnote answering a question about the Iowa Senate race with a Marist poll and FEC records](docs/screenshot.png)
+
 ## Why, and how?
 
 This project was designed primarily as an exercise to familiarize myself with building a product on top of an LLM, and get some experience with RAG, tool use, agent loops, citations, and evals. It is a learning project, not a production system: the corpus is small (<50 documents from two pollsters, plus FEC summary data for one cycle) and the eval set is 10 questions.
