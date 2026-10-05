@@ -34,6 +34,7 @@ Must not:
 
 - Says Paxton leads
 - Presents the result as a forecast of who will win
+- Calls the lead larger than the margin of error
 
 Sources:
 

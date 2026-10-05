@@ -1,0 +1,43 @@
+{
+  "id": "2026-10-05-01-31-margin-of-error-applies-per-number-so-a",
+  "note": "margin of error applies per number, so a lead needs about twice that margin",
+  "started_at": "2026-10-05T01:31:34.205Z",
+  "finished_at": "2026-10-05T01:33:39.750Z",
+  "url": "http://127.0.0.1:8000",
+  "reps": 3,
+  "case_ids": [
+    "texas-senate-poll",
+    "deportations-too-much",
+    "trump-approval-pew",
+    "marist-ohio-methodology",
+    "state-senate-margins",
+    "talarico-fundraising",
+    "iowa-poll-and-money",
+    "house-prediction",
+    "gallup-approval",
+    "pennsylvania-2024"
+  ],
+  "cases_sha": "7872535f6eac",
+  "git": {
+    "commit": "a8753d9",
+    "dirty": true
+  },
+  "api_sha": "80bb4cbbe5d0",
+  "corpus": {
+    "documents": 43,
+    "passages": 576
+  },
+  "judge": {
+    "model": "claude-sonnet-5-5",
+    "effort": "medium",
+    "prompt_versions": {
+      "facts": 2,
+      "citations": 1
+    }
+  },
+  "agent_models": [
+    "claude-sonnet-5-5"
+  ],
+  "answers": 30,
+  "errors": 0
+}

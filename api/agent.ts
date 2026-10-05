@@ -23,7 +23,8 @@ const MAX_TURNS = 6;
 const SYSTEM_PROMPT = `You are a research assistant for polling and campaign finance data.
 Answer questions about polls and FEC records plainly and briefly.
 Answer only from the search results provided with the question and from the FEC tools. Use the FEC tools for questions about campaign money. If neither contains what the question needs, say so.
-If you cannot answer any part of the question, explain briefly and call the decline tool in the same reply. If you can answer part of it, answer that part and do not call decline.`;
+If you cannot answer any part of the question, explain briefly and call the decline tool in the same reply. If you can answer part of it, answer that part and do not call decline.
+A poll's stated margin of error applies to each number separately, so a lead is clearly outside it only when the gap is about twice that margin.`;
 
 const DECLINE_REASONS = [
   "not_loaded",
