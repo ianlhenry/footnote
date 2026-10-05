@@ -11,13 +11,9 @@ export interface ResultBlock {
   ref: SourceRef;
 }
 
-export interface ToolResult {
+export interface FECToolResult {
   // What Claude sees as the result's title.
   title: string;
-  // For display: the document's own title and a short description of the
-  // source. FEC results leave these out and are labeled per record.
-  name?: string;
-  label?: string;
   // A link to the record on fec.gov.
   source: string;
   blocks: ResultBlock[];
@@ -107,7 +103,6 @@ export const FEC_TOOLS: Anthropic.Tool[] = [
     },
   },
 ];
-
 /**
  * Runs one FEC tool Claude asked for.
  *
@@ -121,7 +116,7 @@ export function runFecTool(
   conn: DatabaseSync,
   name: string,
   input: Record<string, unknown>,
-): ToolResult[] {
+): FECToolResult[] {
   switch (name) {
     case "search_candidates":
       return searchCandidates(conn, input);
@@ -227,7 +222,10 @@ export function candidateWhere(input: Record<string, unknown>): {
  * @returns Up to ten candidates, highest receipts first, each as a citable result.
  * @throws {Error} If no name, state, office, or party was given.
  */
-function searchCandidates(conn: DatabaseSync, input: Record<string, unknown>): ToolResult[] {
+export function searchCandidates(
+  conn: DatabaseSync,
+  input: Record<string, unknown>,
+): FECToolResult[] {
   const { where, params, words } = candidateWhere(input);
   // SQL narrows by substring; nameMatches then requires each word to start a
   // word of the name, so "Hinson" does not match HUTCHINSON.
@@ -277,7 +275,10 @@ export function rankQuery(input: Record<string, unknown>): {
  * @returns That many candidates, largest total first, at most twenty.
  * @throws {Error} If by is missing or is not a known total.
  */
-function rankCandidates(conn: DatabaseSync, input: Record<string, unknown>): ToolResult[] {
+export function rankCandidates(
+  conn: DatabaseSync,
+  input: Record<string, unknown>,
+): FECToolResult[] {
   const { column, limit, where, params } = rankQuery(input);
 
   const rows = conn
@@ -294,7 +295,7 @@ function rankCandidates(conn: DatabaseSync, input: Record<string, unknown>): Too
  * @param row - A candidate joined to its 2026-cycle summary and principal committee.
  * @returns The candidate record, its money totals when the summary has them, and its committee.
  */
-function candidateResult(row: CandidateRow): ToolResult {
+function candidateResult(row: CandidateRow): FECToolResult {
   const office = OFFICES[row.CAND_OFFICE ?? ""] ?? row.CAND_OFFICE ?? "unknown office";
   const seat =
     row.CAND_OFFICE === "H" && row.CAND_OFFICE_DISTRICT
@@ -422,7 +423,10 @@ export function committeeWhere(input: Record<string, unknown>): {
  * @returns Up to ten committees, highest receipts first, each as a citable result.
  * @throws {Error} If neither a name nor an ID was given.
  */
-function searchCommittees(conn: DatabaseSync, input: Record<string, unknown>): ToolResult[] {
+export function searchCommittees(
+  conn: DatabaseSync,
+  input: Record<string, unknown>,
+): FECToolResult[] {
   const { where, params, words } = committeeWhere(input);
 
   const rows = conn

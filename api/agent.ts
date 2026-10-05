@@ -1,12 +1,17 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { Answer } from "./contract.ts";
+import { readOnlyDatabase } from "./db.ts";
+import { FEC_TOOLS, runFecTool } from "./fec.ts";
+import { DECLINE_TOOL, toolInput, toSearchResult, tryGetDeclineReason } from "./tools.ts";
 
-const MODEL = "claude-sonnet-5-5";
-const MAX_TOKENS = 1024;
-// Passages retrieved per question.
-const TOP_K = 8;
-// Claude calls per question. The last one gets no tools, so it has to answer.
-const MAX_TURNS = 6;
+const ANTHROPIC_API_CONFIG = {
+  MODEL: "claude-sonnet-5-5",
+  MAX_TOKENS: 1024,
+  MAX_TURNS_PER_QUESTION: 6,
+  TOP_K_PASSAGES: 8,
+};
+
+const TOOL_CHOICE_NONE_DISABLE_TOOLS = { tool_choice: { type: "none" as const } };
 
 const SYSTEM_PROMPT = `You are a research assistant for polling and campaign finance data.
 Answer questions about polls and FEC records plainly and briefly.
@@ -14,20 +19,15 @@ Answer only from the search results provided with the question and from the FEC 
 If you cannot answer any part of the question, explain briefly and call the decline tool in the same reply. If you can answer part of it, answer that part and do not call decline.
 A poll's stated margin of error applies to each number separately, so a lead is clearly outside it only when the gap is about twice that margin.`;
 
-// Tools and the system prompt are the same on every call, for every
-// question, and come first in the request. A cache breakpoint at the end of
-// the system prompt lets each call within five minutes of the last read that
-// prefix at a tenth of the input price. The passages after it change with
-// every question, so they are not cached.
+// Tools and the system prompt are the same on every call, for every question. Since these are first in the request, a cache breakpoint at the end of
+// the system prompt allows each call within 5 minutes to read this for free. The data after it change with every question, so it's not cached.
 const SYSTEM: Anthropic.TextBlockParam[] = [
   { type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } },
 ];
 
+const TOOLS: Anthropic.Tool[] = [DECLINE_TOOL, ...FEC_TOOLS];
+
 export class MissingKeyError extends Error {
-  /**
-   * Creates the error raised when a question is asked with no Anthropic key. Sets the message to
-   * say ANTHROPIC_API_KEY is not set.
-   */
   constructor() {
     super("ANTHROPIC_API_KEY is not set");
   }
@@ -60,13 +60,93 @@ function getClient(): Anthropic {
  * @throws {Error} If the model returns no reply.
  */
 export async function answer(question: string): Promise<Answer> {
-  void question;
-  void MODEL;
-  void MAX_TOKENS;
-  void TOP_K;
-  void MAX_TURNS;
-  void SYSTEM;
-  void getClient;
+  const anthropicClient = getClient();
 
-  throw new Error("not implemented");
+  const messages: Anthropic.MessageParam[] = [
+    {
+      role: "user",
+      content: [{ type: "text", text: question }],
+    },
+  ];
+
+  var declineReason = null;
+  var apiResponse: Anthropic.Message | null = null;
+  for (let turn = 1; turn <= ANTHROPIC_API_CONFIG.MAX_TURNS_PER_QUESTION; turn++) {
+    let apiRequest = {
+      model: ANTHROPIC_API_CONFIG.MODEL,
+      max_tokens: ANTHROPIC_API_CONFIG.MAX_TOKENS,
+      system: SYSTEM,
+      tools: TOOLS,
+      messages: messages,
+    };
+
+    if (turn === ANTHROPIC_API_CONFIG.MAX_TURNS_PER_QUESTION) {
+      // The API requires us to keep passing the tool list, which is ideal for caching too.
+      // But by adding TOOL_CHOICE_NONE_DISABLE_TOOLS, we disable tool usage and force the model to give us a response.
+      apiRequest = {
+        ...apiRequest,
+        ...TOOL_CHOICE_NONE_DISABLE_TOOLS,
+      };
+    }
+
+    // Make the API request.
+    apiResponse = await anthropicClient.messages.create(apiRequest);
+
+    // First check for a decline, and exit the loop.
+    declineReason = tryGetDeclineReason(apiResponse);
+    if (declineReason) {
+      // If the model declined to answer, exit immediately.
+      break;
+    }
+
+    // Any other reason than tool_use means we can exit the loop.
+    if (apiResponse.stop_reason !== "tool_use") {
+      break;
+    }
+
+    messages.push({ role: "assistant", content: apiResponse.content });
+
+    // Process tool usage.
+    const toolResults = apiResponse.content
+      .filter((block): block is Anthropic.ToolUseBlock => block.type === "tool_use")
+      .map((toolBlock) => {
+        try {
+          const toolResults = runFecTool(
+            readOnlyDatabase(),
+            toolBlock.name,
+            toolInput(toolBlock.input),
+          );
+          return {
+            type: "tool_result" as const,
+            tool_use_id: toolBlock.id,
+            content: toolResults.map((toolResult) => toSearchResult(toolResult)),
+          };
+        } catch (error) {
+          return {
+            type: "tool_result" as const,
+            tool_use_id: toolBlock.id,
+            content: error instanceof Error ? error.message : String(error),
+            is_error: true,
+          };
+        }
+      });
+
+    messages.push({ role: "user", content: toolResults });
+  }
+
+  const resultString =
+    apiResponse?.content
+      .filter((block): block is Anthropic.TextBlock => block.type === "text")
+      .map((block) => block.text)
+      .join("") ?? "";
+
+  return {
+    text: resultString,
+    status: declineReason ? "refused" : "answered",
+    decline_reason: declineReason,
+    citations: [],
+    retrieved: [],
+    tool_calls: [],
+    usage: [],
+  };
 }
