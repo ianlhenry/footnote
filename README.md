@@ -1,8 +1,16 @@
 # Footnote
 
-[![check](https://github.com/ianlhenry/footnote/actions/workflows/check.yml/badge.svg)](https://github.com/ianlhenry/footnote/actions/workflows/check.yml)
+Footnote is a research assistant for polling and campaign finance data:
+- You ask a question in plain language, and it searches poll write-ups and queries FEC records to answer it. 
+- Every claim links back to the exact passage or query result it came from, so you can check it before acting on it. 
+- When the data doesn't cover the question, it refuses and tells you what's missing.
 
-Footnote is a research assistant for polling and campaign finance data. You ask a question in plain language, and it searches poll write-ups and queries FEC records to answer it. Every claim links back to the exact passage or query result it came from, so you can check it before acting on it. When the data doesn't cover the question, it refuses and tells you what's missing.
+## Why, and how?
+
+This project was designed primarily as an exercise to familiarize myself with building a product on top of an LLM, and get some experience with RAG, tool use, agent loops, citations, and evals. It is a learning project, not a production system: the corpus is small (<50 documents from two pollsters, plus FEC summary data for one cycle) and the eval set is <25 questions.
+
+Much of this code code was written with AI coding tools (Cursor and Claude Code); I directed the design, and reviewed the changes. I wrote some key parts myself to make sure I fully understood it:
+- The core agent loop in agent.ts, 
 
 ## Results
 
@@ -14,30 +22,13 @@ Three graded runs of the 10 verified cases, three repetitions each (30 answers).
 | FEC tools added | 98% | 80% |
 | Decline tool added | 98% | 100% |
 
-![An answer citing a Marist poll on the Texas Senate race](docs/screenshot.png)
-
 ## Run
 
-Requires Node.js 22.18 or newer.
-
-Copy [`.env.example`](.env.example) to `.env` and fill in the API keys. The database is not in the repo; build it with the ingest steps in [scripts/README.md](scripts/README.md).
-
-```sh
-npm install
-npm install --prefix web
-npm run dev
-```
-
-Open http://127.0.0.1:5173.
-
-## Check
-
-`npm run check` runs the formatter, the linter, both typechecks, the unit tests, and the eval tests. A commit runs it before it is created, and GitHub Actions runs it on every push.
+See [Running](docs/running.md).
 
 ## Docs
 
 - [Architecture](docs/architecture.md)
 - [Evals](docs/evals.md)
-- [Backend](server/README.md)
-- [Frontend](web/README.md)
-- [Scripts](scripts/README.md)
+- [Running](docs/running.md)
+- [Ingestion](docs/ingestion.md)

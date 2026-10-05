@@ -22,9 +22,11 @@ flowchart TD
 
 The page is served by Vite, so the browser's origin is port 5173. The chat API is a different process. The proxy makes `/api/chat` a same-origin request. Calling port 8000 from the page directly would be cross-origin.
 
-The API answers each chat message with one Claude call from `api/agent.ts`, which is where the agent loop will grow. It does not send history or use tools yet.
+Each answer shows numbered citation markers that link to a source list below it, with the quoted text and a link to the article or FEC record. A badge marks answers the agent declined, with the reason. "Trace" expands to the passages retrieved, each FEC tool call and what it returned, and the Claude calls, tokens, and seconds the answer took. A spinner shows while the agent works.
 
-`npm run dev` starts Vite and the API together. Ingestion is a separate batch run. It reads `data/ingestion/` and writes the database. `data/` is gitignored.
+`POST /api/chat` takes `{ "content": "..." }` and returns the user message plus Claude's reply. There is no conversation history yet. The reply also carries `status` (`answered` or `refused`), `citations`, `retrieved`, `tool_calls`, and `usage`, defined in `api/contract.ts`. The eval in `evals/` grades them. `retrieved` lists the passages given to Claude and `citations` the passages it cited. `tool_calls` lists each FEC tool call with its input and the records it returned. `usage` has one entry per Claude call, with its tokens and `cost_usd` at the list prices in `api/pricing.ts`. `decline_reason` is `not_loaded`, `out_of_scope`, or `opinion` when `status` is `refused`, and null otherwise. Without `ANTHROPIC_API_KEY` or `VOYAGE_API_KEY`, `/api/chat` returns 503. Errors from Anthropic or Voyage return 502.
+
+Ingestion is a separate batch run. It reads `data/ingestion/` and writes the database. `data/` is gitignored.
 
 FEC tables loaded today: `fec_candidate`, `fec_committee`, `fec_candidate_committee`, `fec_candidate_summary`, `fec_pac_summary`, and `fec_independent_expenditure`. The FEC loader replaces those tables on each run.
 
