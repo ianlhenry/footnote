@@ -1,13 +1,13 @@
 # Architecture
 
-Three parts share one SQLite file, `data/papertrail.sqlite`. Override the path with `DATABASE_PATH`.
+Three parts share one SQLite file, `data/footnote.sqlite`. Override the path with `DATABASE_PATH`.
 
 ```mermaid
 flowchart TD
   browser[Browser]
   vite["Vite · web/ · port 5173"]
   hono["Hono · api/ · port 8000"]
-  db[("data/papertrail.sqlite")]
+  db[("data/footnote.sqlite")]
   files["data/ingestion/"]
   ingest["Python · server/ingest"]
   claude[Anthropic Messages API]

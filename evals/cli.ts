@@ -757,7 +757,7 @@ function apiSha(): string {
 function corpusState(): RunInfo["corpus"] {
   const file = process.env.DATABASE_PATH
     ? path.resolve(ROOT, process.env.DATABASE_PATH)
-    : path.join(ROOT, "data", "papertrail.sqlite");
+    : path.join(ROOT, "data", "footnote.sqlite");
   if (!fs.existsSync(file)) {
     return null;
   }

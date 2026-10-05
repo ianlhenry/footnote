@@ -38,7 +38,7 @@ def load_env():
 
 def database_path():
     load_env()
-    configured = os.environ.get("DATABASE_PATH", "data/papertrail.sqlite")
+    configured = os.environ.get("DATABASE_PATH", "data/footnote.sqlite")
     path = Path(configured)
     if not path.is_absolute():
         path = REPO_ROOT / path

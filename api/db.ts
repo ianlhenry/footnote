@@ -9,11 +9,11 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 /**
  * Resolves the sqlite file the app reads and writes.
  *
- * @returns Its absolute path. DATABASE_PATH overrides the default data/papertrail.sqlite, and a
+ * @returns Its absolute path. DATABASE_PATH overrides the default data/footnote.sqlite, and a
  * relative path is taken from the repo root.
  */
 export function databasePath(): string {
-  const configured = process.env.DATABASE_PATH || "data/papertrail.sqlite";
+  const configured = process.env.DATABASE_PATH || "data/footnote.sqlite";
   return path.isAbsolute(configured) ? configured : path.join(repoRoot, configured);
 }
 
@@ -30,7 +30,7 @@ export function readOnlyDatabase(): DatabaseSync {
 }
 
 /**
- * Opens the papertrail sqlite file and loads the vector extension.
+ * Opens the footnote sqlite file and loads the vector extension.
  *
  * @param readOnly - When true, skip creating the parent directory and refuse writes.
  * @returns The open connection with foreign keys enabled.

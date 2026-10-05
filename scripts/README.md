@@ -43,11 +43,11 @@ The FEC loader replaces these tables from the files below:
 | `fec_pac_summary` | `webk26.txt` |
 | `fec_independent_expenditure` | `independent_expenditure_2026.csv` |
 
-Raw downloads live under `data/ingestion/<source>/` and are not committed. The database is `data/papertrail.sqlite`.
+Raw downloads live under `data/ingestion/<source>/` and are not committed. The database is `data/footnote.sqlite`.
 
 ```
 data/
-  papertrail.sqlite
+  footnote.sqlite
   ingestion/
     fec/
       cn.txt

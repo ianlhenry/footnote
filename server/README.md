@@ -20,4 +20,4 @@ The reply also carries `status` (`answered` or `refused`), `citations`, `retriev
 The server reads the repo `.env` on startup. Variables already set in the shell take precedence. See `.env.example`.
 
 - `ANTHROPIC_API_KEY` and `VOYAGE_API_KEY` are required for chat. Without either, `/api/chat` returns 503. Errors from Anthropic or Voyage return 502.
-- `DATABASE_PATH` overrides the database file, which defaults to `data/papertrail.sqlite`.
+- `DATABASE_PATH` overrides the database file, which defaults to `data/footnote.sqlite`.

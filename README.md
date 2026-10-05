@@ -1,6 +1,6 @@
 # Footnote
 
-[![check](https://github.com/ianlhenry/papertrail/actions/workflows/check.yml/badge.svg)](https://github.com/ianlhenry/papertrail/actions/workflows/check.yml)
+[![check](https://github.com/ianlhenry/footnote/actions/workflows/check.yml/badge.svg)](https://github.com/ianlhenry/footnote/actions/workflows/check.yml)
 
 Footnote is a research assistant for polling and campaign finance data. You ask a question in plain language, and it searches poll write-ups and queries FEC records to answer it. Every claim links back to the exact passage or query result it came from, so you can check it before acting on it. When the data doesn't cover the question, it refuses and tells you what's missing.
 

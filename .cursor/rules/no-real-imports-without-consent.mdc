@@ -19,7 +19,7 @@ Needs explicit consent first:
 - any Voyage embedding call, or any other request that uses `VOYAGE_API_KEY` or another key from `.env`
 - any Anthropic call that uses `ANTHROPIC_API_KEY`, including sending a message to `/api/chat` while the key is set
 - `npm run eval -- run --yes`, and `npm run eval -- grade --yes` when the judge cache misses. Both call Claude.
-- anything that writes to or replaces tables in `data/papertrail.sqlite`
+- anything that writes to or replaces tables in `data/footnote.sqlite`
 - any `git commit`, including amends, rebases, and other history rewrites
 - any `git push`, including force pushes and pushing new branches or tags
 
