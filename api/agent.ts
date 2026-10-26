@@ -42,29 +42,24 @@ type ToolCallback = (name: string, input: Record<string, unknown>) => CitableRes
 
 const TOOL_CALLBACKS: ToolCallback[] = [runFecTool];
 
-// Claude's reasons for ending a reply.
-const STOP_REASONS = [
-  "end_turn",
-  "max_tokens",
-  "stop_sequence",
-  "tool_use",
-  "pause_turn",
-  "refusal",
-  "model_context_window_exceeded",
-] as const;
-
-type StopReason = (typeof STOP_REASONS)[number];
-
 type StopAction = "tools" | "finish";
 
 export class MissingKeyError extends Error {
+  /**
+   * Creates the error raised when a question arrives with no Anthropic key.
+   */
   constructor() {
     super("ANTHROPIC_API_KEY is not set");
   }
 }
 
 export class UnexpectedStopError extends Error {
-  constructor(reason: StopReason) {
+  /**
+   * Creates the error raised when Claude stops for a reason the agent loop does not continue from.
+   *
+   * @param reason - The stop reason Claude returned, such as max_tokens or refusal.
+   */
+  constructor(reason: Anthropic.StopReason) {
     super(`Claude stopped unexpectedly: ${reason}`);
   }
 }
@@ -87,7 +82,12 @@ function getClient(): Anthropic {
   return client;
 }
 
-// Anthropic types this as unknown since it could be anything; wrangle it to a Record.
+/**
+ * Turns a tool call's input into a plain object. Anthropic types the input as unknown since it could be anything.
+ *
+ * @param input - The input from a tool_use block.
+ * @returns The input as a record, or an empty record if it is not a plain object.
+ */
 export function toolInput(input: unknown): Record<string, unknown> {
   if (typeof input === "object" && input !== null && !Array.isArray(input)) {
     return input as Record<string, unknown>;
@@ -95,17 +95,20 @@ export function toolInput(input: unknown): Record<string, unknown> {
   return {};
 }
 
-function isStopReason(value: string | null): value is StopReason {
-  return STOP_REASONS.some((reason) => reason === value);
-}
-
-function stopReason(response: Anthropic.Message): StopReason {
+/**
+ * Reads why Claude ended a reply.
+ *
+ * @param response - A non-streaming Messages API response.
+ * @returns The stop reason.
+ * @throws {Error} If the response has no stop reason, which only streaming responses should lack.
+ */
+function stopReason(response: Anthropic.Message): Anthropic.StopReason {
   const reason = response.stop_reason;
-  if (isStopReason(reason)) {
-    return reason;
+  if (!reason) {
+    throw new Error("API response did not contain a stop reason!");
   }
 
-  throw new Error(`Unexpected stop reason: ${String(reason)}`);
+  return reason;
 }
 
 /**
@@ -117,7 +120,7 @@ function stopReason(response: Anthropic.Message): StopReason {
  * @throws {UnexpectedStopError} If Claude stopped because it ran out of tokens, paused, refused, or
  * exceeded the context window.
  */
-export function actionForStopReason(reason: StopReason): StopAction {
+export function actionForStopReason(reason: Anthropic.StopReason): StopAction {
   switch (reason) {
     case "tool_use":
       return "tools";
@@ -136,6 +139,13 @@ export function actionForStopReason(reason: StopReason): StopAction {
   }
 }
 
+/**
+ * Converts a citable result into the search result block Claude reads and cites.
+ *
+ * @param result - A passage or FEC record with its text blocks.
+ * @returns A search result with one text block per result block and citations turned on, so
+ * citation block indexes match the result's blocks.
+ */
 function toSearchResult(result: CitableResult): Anthropic.SearchResultBlockParam {
   return {
     type: "search_result",
@@ -209,10 +219,8 @@ export async function answer(question: string): Promise<Answer> {
     const action = actionForStopReason(stopReason(apiResponse));
     switch (action) {
       case "finish":
-        // Exit the for loop entirely.
         break turns;
       case "tools":
-        // Tool call, so continue below the switch.
         break;
       default: {
         const unexpected: never = action;
