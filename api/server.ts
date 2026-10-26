@@ -2,7 +2,7 @@ import fs from "node:fs";
 import Anthropic from "@anthropic-ai/sdk";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
-import { answer, MissingKeyError } from "./agent.ts";
+import { answer, MissingKeyError, UnexpectedStopError } from "./agent.ts";
 import { connect } from "./db.ts";
 import { MissingVoyageKeyError, VoyageError } from "./util/embeddings.ts";
 
@@ -13,11 +13,6 @@ if (fs.existsSync(envFile)) {
 
 let nextId = 1;
 
-/**
- * Takes the next message id for a chat response, then advance the counter.
- *
- * @returns That id. The first call returns 1.
- */
 function takeId(): number {
   const id = nextId;
   nextId += 1;
@@ -70,6 +65,9 @@ app.onError((error, c) => {
   }
   if (error instanceof VoyageError) {
     return c.json({ detail: "Search request failed" }, 502);
+  }
+  if (error instanceof UnexpectedStopError) {
+    return c.json({ detail: error.message }, 502);
   }
   if (error instanceof Anthropic.APIError) {
     return c.json({ detail: "Model request failed" }, 502);

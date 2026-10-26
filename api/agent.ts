@@ -42,9 +42,30 @@ type ToolCallback = (name: string, input: Record<string, unknown>) => CitableRes
 
 const TOOL_CALLBACKS: ToolCallback[] = [runFecTool];
 
+// Claude's reasons for ending a reply.
+const STOP_REASONS = [
+  "end_turn",
+  "max_tokens",
+  "stop_sequence",
+  "tool_use",
+  "pause_turn",
+  "refusal",
+  "model_context_window_exceeded",
+] as const;
+
+type StopReason = (typeof STOP_REASONS)[number];
+
+type StopAction = "tools" | "finish";
+
 export class MissingKeyError extends Error {
   constructor() {
     super("ANTHROPIC_API_KEY is not set");
+  }
+}
+
+export class UnexpectedStopError extends Error {
+  constructor(reason: StopReason) {
+    super(`Claude stopped unexpectedly: ${reason}`);
   }
 }
 
@@ -74,6 +95,47 @@ export function toolInput(input: unknown): Record<string, unknown> {
   return {};
 }
 
+function isStopReason(value: string | null): value is StopReason {
+  return STOP_REASONS.some((reason) => reason === value);
+}
+
+function stopReason(response: Anthropic.Message): StopReason {
+  const reason = response.stop_reason;
+  if (isStopReason(reason)) {
+    return reason;
+  }
+
+  throw new Error(`Unexpected stop reason: ${String(reason)}`);
+}
+
+/**
+ * Decides what the agent loop does with a stop reason. A tool call runs the tools. A normal end
+ * keeps the reply. Any other reason is unexpected, so the loop stops.
+ *
+ * @param reason - Why Claude stopped.
+ * @returns Whether to run tools or keep the reply.
+ * @throws {UnexpectedStopError} If Claude stopped because it ran out of tokens, paused, refused, or
+ * exceeded the context window.
+ */
+export function actionForStopReason(reason: StopReason): StopAction {
+  switch (reason) {
+    case "tool_use":
+      return "tools";
+    case "end_turn":
+    case "stop_sequence":
+      return "finish";
+    case "max_tokens":
+    case "pause_turn":
+    case "refusal":
+    case "model_context_window_exceeded":
+      throw new UnexpectedStopError(reason);
+    default: {
+      const unexpected: never = reason;
+      throw new Error(`Unexpected stop reason: ${String(unexpected)}`);
+    }
+  }
+}
+
 function toSearchResult(result: CitableResult): Anthropic.SearchResultBlockParam {
   return {
     type: "search_result",
@@ -90,6 +152,9 @@ function toSearchResult(result: CitableResult): Anthropic.SearchResultBlockParam
  * @param question - What the user asked. It is embedded for the passage search and sent to Claude.
  * @returns The reply, whether it was answered or refused, citations, retrieved records, tool calls,
  * and token usage for each Claude call.
+ * @throws {UnexpectedStopError} If Claude stops because it ran out of tokens, paused, refused, or
+ * exceeded the context window.
+ * @throws {Error} If Claude stops for a reason this loop does not know.
  */
 export async function answer(question: string): Promise<Answer> {
   const anthropicClient = getClient();
@@ -109,7 +174,7 @@ export async function answer(question: string): Promise<Answer> {
   const toolCalls: ToolCall[] = [];
   const apiUsage: AnswerUsage[] = [];
 
-  for (let turn = 1; turn <= ANTHROPIC_API_CONFIG.MAX_TURNS_PER_QUESTION; turn++) {
+  turns: for (let turn = 1; turn <= ANTHROPIC_API_CONFIG.MAX_TURNS_PER_QUESTION; turn++) {
     let apiRequest = {
       model: ANTHROPIC_API_CONFIG.MODEL,
       max_tokens: ANTHROPIC_API_CONFIG.MAX_TOKENS,
@@ -141,9 +206,18 @@ export async function answer(question: string): Promise<Answer> {
       break;
     }
 
-    // Any other reason than tool_use means we can exit the loop.
-    if (apiResponse.stop_reason !== "tool_use") {
-      break;
+    const action = actionForStopReason(stopReason(apiResponse));
+    switch (action) {
+      case "finish":
+        // Exit the for loop entirely.
+        break turns;
+      case "tools":
+        // Tool call, so continue below the switch.
+        break;
+      default: {
+        const unexpected: never = action;
+        throw new Error(`Unexpected stop action: ${String(unexpected)}`);
+      }
     }
 
     messages.push({ role: "assistant", content: apiResponse.content });
